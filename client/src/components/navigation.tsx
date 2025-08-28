@@ -1,86 +1,85 @@
-import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Heart, BarChart3, Users, Gift, HandHeart, Menu, X } from "lucide-react";
+import { useState } from "react";
 
-export default function Navigation() {
+export function Navigation() {
   const [location] = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { path: "/", label: "Home" },
-    { path: "/donate-items", label: "Donate Items" },
-    { path: "/donate-money", label: "Donate Money" },
-    { path: "/register-needy", label: "Register Needy" },
-    { path: "/analytics", label: "Analytics" },
+    { href: "/", icon: Heart, label: "Home" },
+    { href: "/donate-items", icon: Gift, label: "Donate Items" },
+    { href: "/donate-money", icon: HandHeart, label: "Donate Money" },
+    { href: "/register-needy", icon: Users, label: "Register Needy" },
+    { href: "/analytics", icon: BarChart3, label: "Analytics" },
   ];
 
-  const isActive = (path: string) => {
-    if (path === "/" && location === "/") return true;
-    if (path !== "/" && location.startsWith(path)) return true;
-    return false;
+  const isActive = (href: string) => {
+    if (href === "/") return location === "/";
+    return location.startsWith(href);
   };
 
   return (
-    <nav className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
+    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-4">
-            <Link href="/" className="flex items-center space-x-4" data-testid="link-home">
-              <div className="text-2xl font-bold text-primary">HAID</div>
-              <span className="text-sm text-muted-foreground">Helping Aid for Indian Development</span>
-            </Link>
-          </div>
-          
-          <div className="hidden md:flex space-x-6">
+          <Link href="/" className="flex items-center space-x-2" data-testid="link-home-nav">
+            <Heart className="h-8 w-8 text-primary" />
+            <span className="text-xl font-bold text-primary">HAID</span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => (
-              <Link key={item.path} href={item.path} data-testid={`link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}>
+              <Link key={item.href} href={item.href} data-testid={`link-${item.label.toLowerCase().replace(' ', '-')}-nav`}>
                 <Button
-                  variant="ghost"
-                  className={`font-medium ${
-                    isActive(item.path)
-                      ? "text-primary bg-primary/10"
-                      : "text-foreground hover:text-primary"
-                  }`}
+                  variant={isActive(item.href) ? "default" : "ghost"}
+                  className="flex items-center space-x-2"
                 >
-                  {item.label}
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label}</span>
                 </Button>
               </Link>
             ))}
+            <ThemeToggle />
           </div>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            className="md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            data-testid="button-mobile-menu"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </Button>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center space-x-2">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              data-testid="button-mobile-menu"
+            >
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden py-4 border-t" data-testid="mobile-menu">
+            <div className="flex flex-col space-y-2">
+              {navItems.map((item) => (
+                <Link key={item.href} href={item.href} data-testid={`link-mobile-${item.label.toLowerCase().replace(' ', '-')}`}>
+                  <Button
+                    variant={isActive(item.href) ? "default" : "ghost"}
+                    className="w-full justify-start flex items-center space-x-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </Button>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-      
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-card border-t border-border px-4 py-2 space-y-2">
-          {navItems.map((item) => (
-            <Link key={item.path} href={item.path} data-testid={`mobile-link-${item.label.toLowerCase().replace(/\s+/g, '-')}`}>
-              <Button
-                variant="ghost"
-                className={`w-full justify-start ${
-                  isActive(item.path)
-                    ? "text-primary bg-primary/10"
-                    : "text-foreground hover:text-primary"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.label}
-              </Button>
-            </Link>
-          ))}
-        </div>
-      )}
     </nav>
   );
 }

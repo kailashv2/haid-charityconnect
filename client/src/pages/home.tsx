@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { TrendingUp, Users, DollarSign, FileText } from "lucide-react";
+import { TrendingUp, Users, DollarSign, FileText, Heart, ArrowRight, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
+import { RecentDonations } from "@/components/recent-donations";
 
 // Import the generated images
 import foodDistributionImage from "@assets/generated_images/Food_distribution_to_needy_families_d3150708.png";
@@ -71,29 +72,33 @@ export default function HomePage() {
         }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6" data-testid="text-hero-title">
-            Make a Difference Today
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto" data-testid="text-hero-subtitle">
-            Join HAID in creating positive change. Donate items or money to help those in need across India.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/donate-items" data-testid="link-donate-items-hero">
-              <Button 
-                size="lg" 
-                className="bg-accent text-accent-foreground hover:bg-accent/90 px-8 py-3 text-lg font-semibold shadow-lg"
-              >
-                Donate Items
-              </Button>
-            </Link>
-            <Link href="/donate-money" data-testid="link-donate-money-hero">
-              <Button 
-                size="lg" 
-                className="bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 py-3 text-lg font-semibold shadow-lg"
-              >
-                Donate Money
-              </Button>
-            </Link>
+          <div className="animate-in fade-in duration-1000">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-in slide-in-from-bottom-4 duration-1000" data-testid="text-hero-title">
+              Make a Difference Today
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto animate-in slide-in-from-bottom-6 duration-1000 delay-200" data-testid="text-hero-subtitle">
+              Join HAID in creating positive change. Donate items or money to help those in need across India.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in slide-in-from-bottom-8 duration-1000 delay-500">
+              <Link href="/donate-items" data-testid="link-donate-items-hero">
+                <Button 
+                  size="lg" 
+                  className="bg-accent text-accent-foreground hover:bg-accent/90 hover:scale-105 px-8 py-3 text-lg font-semibold shadow-lg transition-all duration-300 group"
+                >
+                  Donate Items
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              <Link href="/donate-money" data-testid="link-donate-money-hero">
+                <Button 
+                  size="lg" 
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/90 hover:scale-105 px-8 py-3 text-lg font-semibold shadow-lg transition-all duration-300 group"
+                >
+                  Donate Money
+                  <Heart className="w-5 h-5 ml-2 group-hover:scale-110 transition-transform" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -162,24 +167,77 @@ export default function HomePage() {
       {/* Impact Stats */}
       <section className="py-16 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
+              Our Impact by Numbers
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Together we're making a real difference in communities across India
+            </p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="bg-muted p-8 rounded-xl">
+            <div className="bg-muted p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-primary" />
+              </div>
               <div className="text-4xl font-bold text-primary mb-2" data-testid="text-total-donations">
                 {isLoading ? "..." : (analytics as any)?.totalDonations?.toLocaleString() || "0"}
               </div>
               <div className="text-muted-foreground font-medium">Total Donations</div>
             </div>
-            <div className="bg-muted p-8 rounded-xl">
+            <div className="bg-muted p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105">
+              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-8 h-8 text-secondary" />
+              </div>
               <div className="text-4xl font-bold text-secondary mb-2" data-testid="text-people-helped">
                 {isLoading ? "..." : (analytics as any)?.peopleHelped?.toLocaleString() || "0"}
               </div>
               <div className="text-muted-foreground font-medium">People Helped</div>
             </div>
-            <div className="bg-muted p-8 rounded-xl">
+            <div className="bg-muted p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <DollarSign className="w-8 h-8 text-accent" />
+              </div>
               <div className="text-4xl font-bold text-accent mb-2" data-testid="text-amount-raised">
                 {isLoading ? "..." : formatCurrency((analytics as any)?.totalMonetaryAmount || 0)}
               </div>
               <div className="text-muted-foreground font-medium">Amount Raised</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Recent Activity Section */}
+      <section className="py-16 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div>
+              <RecentDonations />
+            </div>
+            <div>
+              <div className="bg-gradient-to-br from-primary/10 to-secondary/10 p-8 rounded-2xl h-full flex flex-col justify-center">
+                <div className="text-center">
+                  <Sparkles className="w-12 h-12 text-primary mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-primary mb-4">Join Our Community</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Every contribution matters. Whether it's donating items, money, or helping someone in need get registered, you're part of something bigger.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <Link href="/register-needy" data-testid="link-register-needy-cta">
+                      <Button variant="outline" className="flex items-center gap-2">
+                        <Heart className="w-4 h-4" />
+                        Register Someone in Need
+                      </Button>
+                    </Link>
+                    <Link href="/analytics" data-testid="link-analytics-cta">
+                      <Button variant="outline" className="flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        View Impact Analytics
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
