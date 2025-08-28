@@ -2,11 +2,55 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { TrendingUp, Users, DollarSign, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+
+// Import the generated images
+import foodDistributionImage from "@assets/generated_images/Food_distribution_to_needy_families_d3150708.png";
+import educationSupportImage from "@assets/generated_images/Education_support_for_children_a850d0df.png";
+import clothingDonationImage from "@assets/generated_images/Clothing_donation_for_elderly_e69dc418.png";
+import healthcareImage from "@assets/generated_images/Healthcare_for_rural_communities_125ab937.png";
 
 export default function HomePage() {
   const { data: analytics, isLoading } = useQuery({
     queryKey: ['/api/analytics'],
   });
+
+  // Image carousel state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  const carouselImages = [
+    {
+      src: foodDistributionImage,
+      title: "Food Distribution",
+      description: "Providing essential meals to families in need"
+    },
+    {
+      src: educationSupportImage,
+      title: "Education Support",
+      description: "Supporting children's education with books and supplies"
+    },
+    {
+      src: clothingDonationImage,
+      title: "Clothing Donations",
+      description: "Keeping communities warm with clothing donations"
+    },
+    {
+      src: healthcareImage,
+      title: "Healthcare Access",
+      description: "Bringing medical care to underserved communities"
+    }
+  ];
+
+  // Auto-scroll functionality
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prevIndex) => 
+        prevIndex === carouselImages.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 4000); // Change image every 4 seconds
+
+    return () => clearInterval(interval);
+  }, [carouselImages.length]);
 
   const formatCurrency = (amount: number) => {
     if (amount >= 100000) {
@@ -50,6 +94,67 @@ export default function HomePage() {
                 Donate Money
               </Button>
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Image Carousel Section */}
+      <section className="py-16 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
+              Our Impact in Action
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              See how your donations make a real difference in communities across India
+            </p>
+          </div>
+          
+          <div className="relative max-w-4xl mx-auto">
+            <div className="relative h-80 md:h-96 rounded-2xl overflow-hidden shadow-2xl">
+              {carouselImages.map((image, index) => (
+                <div
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                    index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  data-testid={`carousel-slide-${index}`}
+                >
+                  <img
+                    src={image.src}
+                    alt={image.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent">
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                      <h3 className="text-2xl md:text-3xl font-bold mb-2">
+                        {image.title}
+                      </h3>
+                      <p className="text-lg opacity-90">
+                        {image.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Carousel Indicators */}
+            <div className="flex justify-center mt-6 space-x-2">
+              {carouselImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentImageIndex(index)}
+                  className={`w-3 h-3 rounded-full transition-colors duration-300 ${
+                    index === currentImageIndex 
+                      ? 'bg-primary' 
+                      : 'bg-primary/30 hover:bg-primary/50'
+                  }`}
+                  data-testid={`carousel-indicator-${index}`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
