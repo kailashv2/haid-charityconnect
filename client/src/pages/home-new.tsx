@@ -7,15 +7,25 @@ import { useState, useEffect } from "react";
 export default function HomePage() {
   const { data: analytics, isLoading, refetch: refetchAnalytics } = useQuery({
     queryKey: ['/api/analytics'],
-    refetchInterval: 5000, // More frequent updates
+    refetchInterval: 2000, // Real-time updates every 2 seconds
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
     staleTime: 0, // Always fetch fresh data
   });
 
   const { data: donationsData, refetch: refetchDonations } = useQuery({
     queryKey: ['/api/donations'],
-    refetchInterval: 5000, // More frequent updates
+    refetchInterval: 2000, // Real-time updates every 2 seconds
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 0, // Always fetch fresh data
+  });
+
+  const { data: needyData, refetch: refetchNeedy } = useQuery({
+    queryKey: ['/api/needy'],
+    refetchInterval: 2000, // Real-time updates every 2 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     staleTime: 0, // Always fetch fresh data
   });
 
@@ -35,21 +45,43 @@ export default function HomePage() {
     ...monetaryDonations.map((d: any) => ({ ...d, type: 'monetary' }))
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   
-  const recentDonations = allDonations.slice(0, 4);
+  const recentDonations = allDonations; // Show all donations from database
 
   // Image carousel for hero section
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   // Modal state for impact cards
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  
+  // Full page donations view state
+  const [showAllDonations, setShowAllDonations] = useState(false);
+  
+  // Full page needy persons view state
+  const [showAllNeedyPersons, setShowAllNeedyPersons] = useState(false);
 
   // Function to handle card clicks and refresh data
   const handleCardClick = (cardType: string) => {
     setSelectedCard(cardType);
-    // Force refresh data when modal opens
+    // Force refresh all data when modal opens
     refetchAnalytics();
     refetchDonations();
+    refetchNeedy();
   };
+
+  // Auto-refresh data every 2 seconds when modal is open
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (selectedCard) {
+      interval = setInterval(() => {
+        refetchAnalytics();
+        refetchDonations();
+        refetchNeedy();
+      }, 2000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [selectedCard, refetchAnalytics, refetchDonations, refetchNeedy]);
   
   const heroImages = [
     {
@@ -113,14 +145,14 @@ export default function HomePage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link href="/donate-items">
+                <Link href="/register-needy">
                   <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-300">
-                    Request Now
+                    Request Help
                   </Button>
                 </Link>
-                <Link href="/donate-money">
+                <Link href="/donate-money" className="ml-2">
                   <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-300">
-                    Contribute Now
+                    Donate Now
                   </Button>
                 </Link>
               </div>
@@ -204,7 +236,7 @@ export default function HomePage() {
                 onClick={() => handleCardClick('donations')}
               >
                 <div className="text-6xl lg:text-7xl font-bold text-blue-600 dark:text-blue-400 mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {isLoading ? "..." : allDonations.length.toLocaleString()}
+                  {isLoading ? "..." : ((analytics as any)?.totalDonations || allDonations.length).toLocaleString()}
                 </div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white mb-2">Total Donations</div>
                 <div className="text-gray-600 dark:text-gray-300">Items and money contributed</div>
@@ -219,7 +251,7 @@ export default function HomePage() {
                 onClick={() => handleCardClick('people')}
               >
                 <div className="text-6xl lg:text-7xl font-bold text-green-600 dark:text-green-400 mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {isLoading ? "..." : allDonations.filter(d => d.status === 'completed').length.toLocaleString()}
+                  {isLoading ? "..." : ((analytics as any)?.peopleHelped || ((needyData as any)?.filter((p: any) => p.verified).length) || 0).toLocaleString()}
                 </div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white mb-2">People Helped</div>
                 <div className="text-gray-600 dark:text-gray-300">Lives positively impacted</div>
@@ -234,7 +266,7 @@ export default function HomePage() {
                 onClick={() => handleCardClick('amount')}
               >
                 <div className="text-5xl lg:text-6xl font-bold text-purple-600 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {isLoading ? "..." : formatCurrency(monetaryDonations.reduce((sum: number, d: any) => sum + (parseFloat(d.amount) || 0), 0))}
+                  {isLoading ? "..." : formatCurrency((analytics as any)?.totalMonetaryAmount || monetaryDonations.reduce((sum: number, d: any) => sum + (parseFloat(d.amount) || 0), 0))}
                 </div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white mb-2">Amount Raised</div>
                 <div className="text-gray-600 dark:text-gray-300">Funds collected for causes</div>
@@ -243,24 +275,40 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="text-center mt-12">
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/donate-items">
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold rounded-xl shadow-lg">
-                  Donate Items
-                </Button>
-              </Link>
-              <Link href="/donate-money">
-                <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-semibold rounded-xl shadow-lg">
-                  Contribute Money
-                </Button>
-              </Link>
-              <Link href="/register-needy">
-                <Button variant="outline" className="border-2 border-purple-600 text-purple-600 hover:bg-purple-50 px-8 py-3 text-lg font-semibold rounded-xl">
-                  Register Someone in Need
-                </Button>
-              </Link>
+          {/* Start Making Real Impact Section */}
+          <div className="mt-16">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              {/* Left side - Text content */}
+              <div className="text-left">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  Start Making Real Impact
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 max-w-md">
+                  Be among the first to create verified, measurable change
+                </p>
+              </div>
+              
+              {/* Right side - Action buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 lg:flex-shrink-0">
+                <Link href="/donate-items">
+                  <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2">
+                    <Gift className="w-4 h-4" />
+                    Donate Items
+                  </Button>
+                </Link>
+                <Link href="/donate-money">
+                  <Button className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2">
+                    <Heart className="w-4 h-4" />
+                    Donate Money
+                  </Button>
+                </Link>
+                <Link href="/register-needy">
+                  <Button className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-sm font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Register Someone
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -270,9 +318,14 @@ export default function HomePage() {
       <section className="py-20 bg-white dark:bg-gray-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <p className="text-blue-600 dark:text-blue-400 font-semibold mb-2 uppercase tracking-wide text-sm">
-              * Real-time updates from our community
-            </p>
+            <div className="flex items-center justify-center mb-2">
+              <div className="flex items-center bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-full">
+                <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full mr-2"></div>
+                <p className="text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide text-sm">
+                  Real-time updates from our community
+                </p>
+              </div>
+            </div>
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
               Recent Activity
             </h2>
@@ -281,86 +334,95 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="bg-gray-50 dark:bg-gray-900 rounded-3xl p-8 lg:p-12 shadow-lg">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-                <Heart className="w-8 h-8 text-red-500 mr-3" />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                <Gift className="w-6 h-6 text-blue-600 mr-3" />
                 Recent Donations
               </h3>
-              <Link href="/analytics">
-                <Button variant="outline" className="flex items-center gap-2 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900 dark:text-blue-400">
-                  View All <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
+              <Button 
+                variant="outline" 
+                className="text-sm px-4 py-2"
+                onClick={() => setShowAllDonations(true)}
+              >
+                View All
+              </Button>
             </div>
 
             {recentDonations.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Heart className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Heart className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                 </div>
-                <h4 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">No donations yet. Be the first to make a difference!</h4>
-                <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
-                  Join our community of helpers and start making an impact today.
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No donations yet</h4>
+                <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
+                  Be the first to make a difference!
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex gap-3 justify-center">
                   <Link href="/donate-items">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold">
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
                       Donate Items
                     </Button>
                   </Link>
                   <Link href="/donate-money">
-                    <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg font-semibold">
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
                       Donate Money
                     </Button>
                   </Link>
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
-                {recentDonations.map((donation: any, index: number) => {
-                  const isMonetary = donation.type === 'monetary';
-                  const displayName = isMonetary ? `₹${donation.amount} Donation` : `${donation.category} Donation`;
-                  const description = isMonetary ? donation.purpose : donation.description;
-                  const timeAgo = new Date(donation.createdAt).toLocaleDateString();
-                  
-                  return (
-                    <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-gray-700">
-                      <div className="flex items-start space-x-4">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                          isMonetary ? 'bg-purple-100 dark:bg-purple-900' : 'bg-blue-100 dark:bg-blue-900'
-                        }`}>
-                          {isMonetary ? (
-                            <DollarSign className={`w-7 h-7 ${isMonetary ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'}`} />
-                          ) : (
-                            <Gift className={`w-7 h-7 ${isMonetary ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'}`} />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-xl font-bold text-gray-900 dark:text-white">{displayName}</h4>
-                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">{timeAgo}</span>
-                          </div>
-                          <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">{description}</p>
-                          <div className="flex items-center gap-3">
-                            <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                              donation.status === 'completed' 
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
-                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                            }`}>
-                              {donation.status === 'completed' ? '✅ Completed' : '⏳ Processing'}
-                            </span>
-                            <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                              isMonetary ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                            }`}>
-                              {isMonetary ? '💰 Money' : '📦 Items'}
-                            </span>
+              <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                <div className="space-y-4 pr-2">
+                  {recentDonations.map((donation: any, index: number) => {
+                    const isMonetary = donation.type === 'monetary';
+                    const donorName = donation.donorName || 'Anonymous';
+                    const category = isMonetary ? 'Money' : donation.category;
+                    const description = isMonetary ? donation.purpose : donation.description;
+                    const location = donation.donorCity || 'Unknown';
+                    const timeAgo = new Date(donation.createdAt).toLocaleDateString();
+                    
+                    return (
+                      <div key={index} className="flex items-start justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <div className="flex items-start space-x-3 flex-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
+                                {donorName}
+                              </h4>
+                              <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 px-2 py-1 rounded">
+                                  {category}
+                                </span>
+                                <span className="text-xs font-medium text-white bg-green-500 px-2 py-1 rounded">
+                                  pending
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1 line-clamp-1">
+                              {description}
+                            </p>
+                            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-4">
+                              <span className="flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                </svg>
+                                {location}
+                              </span>
+                              <span className="flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                </svg>
+                                {timeAgo}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -371,9 +433,14 @@ export default function HomePage() {
       <section className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <p className="text-blue-600 dark:text-blue-400 font-semibold mb-2 uppercase tracking-wide text-sm">
-              * Making a difference is simple and transparent
-            </p>
+            <div className="flex items-center justify-center mb-2">
+              <div className="flex items-center bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-full">
+                <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full mr-2"></div>
+                <p className="text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide text-sm">
+                  Making a difference is simple and transparent
+                </p>
+              </div>
+            </div>
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
               How It Works
             </h2>
@@ -570,8 +637,8 @@ export default function HomePage() {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          <h5 className="font-medium text-black dark:text-white text-sm mb-3">Recent Item Donations:</h5>
-                          {itemDonations.slice(0, 5).map((donation: any, index: number) => (
+                          <h5 className="font-medium text-black dark:text-white text-sm mb-3">All Item Donations ({itemDonations.length}):</h5>
+                          {itemDonations.map((donation: any, index: number) => (
                             <div key={donation.id || index} className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-3 border-blue-500">
                               <div className="flex justify-between items-center">
                                 <div className="flex-1">
@@ -606,17 +673,6 @@ export default function HomePage() {
                               </div>
                             </div>
                           ))}
-                          
-                          {itemDonations.length > 5 && (
-                            <div className="text-center py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                              <span className="text-sm text-gray-500 dark:text-gray-400">
-                                📦 And {itemDonations.length - 5} more item donations in database...
-                              </span>
-                              <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                Total: {itemDonations.length} items • Completed: {itemDonations.filter((d: any) => d.status === 'completed').length} • Pending: {itemDonations.filter((d: any) => d.status === 'pending').length}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>
@@ -658,97 +714,118 @@ export default function HomePage() {
               {selectedCard === 'people' && (
                 <div>
                   <div className="text-center mb-6">
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">Information about verified individuals who received assistance</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Real data from needy persons registry in your database</p>
                   </div>
 
                   <div className="grid grid-cols-3 gap-4 mb-8">
                     <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl text-center">
                       <h5 className="text-green-600 font-medium mb-2 text-sm">Verified & Helped</h5>
                       <div className="text-4xl font-bold text-black dark:text-white">
-                        {allDonations.filter(d => d.status === 'completed').length}
+                        {needyData && Array.isArray(needyData) ? needyData.filter((p: any) => p.verified && p.status === 'completed').length : 0}
                       </div>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-xl text-center">
                       <h5 className="text-yellow-600 font-medium mb-2 text-sm">Pending Verification</h5>
                       <div className="text-4xl font-bold text-black dark:text-white">
-                        {allDonations.filter(d => d.status === 'pending').length}
+                        {needyData && Array.isArray(needyData) ? needyData.filter((p: any) => !p.verified || p.status === 'pending').length : 0}
                       </div>
                     </div>
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl text-center">
                       <h5 className="text-blue-600 font-medium mb-2 text-sm">Total Registered</h5>
                       <div className="text-4xl font-bold text-black dark:text-white">
-                        {allDonations.length}
+                        {needyData && Array.isArray(needyData) ? needyData.length : 0}
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-black dark:text-white mb-4">Verified & Helped People</h4>
-                      {allDonations.filter(d => d.status === 'completed').length === 0 ? (
-                        <p className="text-gray-400 dark:text-gray-500 text-center py-4 text-sm">No verified cases yet.</p>
+                      <h4 className="text-lg font-semibold text-black dark:text-white mb-4">All Registered Needy Persons ({needyData && Array.isArray(needyData) ? needyData.length : 0})</h4>
+                      {!needyData || !Array.isArray(needyData) || needyData.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="text-gray-300 text-6xl mb-4">👥</div>
+                          <p className="text-gray-400 dark:text-gray-500 text-sm">No needy persons registered yet.</p>
+                        </div>
                       ) : (
-                        <div className="space-y-3">
-                          {allDonations.filter(d => d.status === 'completed').slice(0, 3).map((donation: any, index: number) => (
-                            <div key={index} className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                              <div className="font-medium text-black dark:text-white">
-                                {donation.type === 'monetary' ? `₹${donation.amount} donation` : `${donation.category} donation`}
+                        <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                          {needyData.map((person: any, index: number) => (
+                            <div key={person.id || index} className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border-l-4 border-blue-500">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="font-semibold text-black dark:text-white text-lg">
+                                  {person.name || 'Unknown Name'}
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    person.verified 
+                                      ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                                      : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                                  }`}>
+                                    {person.verified ? 'Verified' : 'Pending'}
+                                  </span>
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                    person.status === 'completed' 
+                                      ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                                      : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                  }`}>
+                                    {person.status || 'pending'}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                Completed on {new Date(donation.createdAt).toLocaleDateString()}
+                              
+                              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                <strong>Age:</strong> {person.age || 'N/A'} • <strong>Gender:</strong> {person.gender || 'N/A'} • <strong>Family Size:</strong> {person.familySize || 'N/A'}
+                              </div>
+                              
+                              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                <strong>Location:</strong> {person.address || 'N/A'}, {person.city || 'N/A'}, {person.state || 'N/A'} - {person.pincode || 'N/A'}
+                              </div>
+                              
+                              <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                                <strong>Situation:</strong> {person.situation || 'No description available'}
+                              </div>
+                              
+                              {person.needs && Array.isArray(person.needs) && person.needs.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {person.needs.map((need: string, needIndex: number) => (
+                                    <span key={needIndex} className="px-2 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-xs rounded">
+                                      {need}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
+                                <strong>Reporter:</strong> {person.reporterName || 'N/A'} ({person.reporterRelationship || 'N/A'}) • 
+                                <strong> Registered:</strong> {person.createdAt ? new Date(person.createdAt).toLocaleDateString() : 'N/A'}
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
-
-                    <div>
-                      <h4 className="text-lg font-semibold text-black dark:text-white mb-4">Pending Verification</h4>
-                      {allDonations.filter(d => d.status === 'pending').length === 0 ? (
-                        <p className="text-gray-400 dark:text-gray-500 text-center py-4 text-sm">No pending cases.</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {allDonations.filter(d => d.status === 'pending').slice(0, 3).map((donation: any, index: number) => (
-                            <div key={index} className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl">
-                              <div className="font-medium text-black dark:text-white">
-                                {donation.type === 'monetary' ? `₹${donation.amount} donation` : `${donation.category} donation`}
-                              </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                Submitted on {new Date(donation.createdAt).toLocaleDateString()}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                  </div>
+                  
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl mt-6">
+                    <div className="flex items-center mb-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                      <span className="font-medium text-black dark:text-white text-sm">Summary</span>
                     </div>
-
-                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
-                      <div className="flex items-center mb-3">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                        <span className="font-medium text-black dark:text-white text-sm">Summary</span>
+                    <div className="grid grid-cols-2 gap-6 text-sm">
+                      <div>
+                        <span className="text-green-600 dark:text-green-400">Total Registered: </span>
+                        <span className="font-bold text-black dark:text-white">{needyData && Array.isArray(needyData) ? needyData.length : 0}</span>
                       </div>
-                      <div className="grid grid-cols-2 gap-6 text-sm">
-                        <div>
-                          <span className="text-blue-600 dark:text-blue-400">Total Registered: </span>
-                          <span className="font-bold text-black dark:text-white">{allDonations.length}</span>
-                        </div>
-                        <div>
-                          <span className="text-green-600 dark:text-green-400">Successfully Helped: </span>
-                          <span className="font-bold text-black dark:text-white">{allDonations.filter(d => d.status === 'completed').length}</span>
-                        </div>
+                      <div>
+                        <span className="text-green-600 dark:text-green-400">Verified: </span>
+                        <span className="font-bold text-black dark:text-white">{needyData && Array.isArray(needyData) ? needyData.filter((p: any) => p.verified).length : 0}</span>
                       </div>
-                      <div className="grid grid-cols-2 gap-6 text-sm mt-3">
-                        <div>
-                          <span className="text-yellow-600 dark:text-yellow-400">Awaiting Verification: </span>
-                          <span className="font-bold text-black dark:text-white">{allDonations.filter(d => d.status === 'pending').length}</span>
-                        </div>
-                        <div>
-                          <span className="text-blue-600 dark:text-blue-400">Success Rate: </span>
-                          <span className="font-bold text-black dark:text-white">
-                            {allDonations.length > 0 ? Math.round((allDonations.filter(d => d.status === 'completed').length / allDonations.length) * 100) : 0}%
-                          </span>
-                        </div>
+                      <div>
+                        <span className="text-yellow-600 dark:text-yellow-400">Pending: </span>
+                        <span className="font-bold text-black dark:text-white">{needyData && Array.isArray(needyData) ? needyData.filter((p: any) => !p.verified).length : 0}</span>
+                      </div>
+                      <div>
+                        <span className="text-blue-600 dark:text-blue-400">Helped: </span>
+                        <span className="font-bold text-black dark:text-white">{needyData && Array.isArray(needyData) ? needyData.filter((p: any) => p.status === 'completed').length : 0}</span>
                       </div>
                     </div>
                   </div>
@@ -796,9 +873,9 @@ export default function HomePage() {
                   ) : (
                     <div className="space-y-6">
                       <div>
-                        <h4 className="text-lg font-semibold text-black dark:text-white mb-4">Recent Monetary Donations</h4>
+                        <h4 className="text-lg font-semibold text-black dark:text-white mb-4">All Monetary Donations ({monetaryDonations.length})</h4>
                         <div className="space-y-3">
-                          {monetaryDonations.slice(0, 5).map((donation: any, index: number) => (
+                          {monetaryDonations.map((donation: any, index: number) => (
                             <div key={index} className="flex justify-between items-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
                               <div>
                                 <div className="font-bold text-orange-600 dark:text-orange-400 text-lg">
@@ -863,6 +940,251 @@ export default function HomePage() {
                   View Full Analytics
                 </Button>
               </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Page Donations View Modal */}
+      {showAllDonations && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center">
+                <Gift className="w-8 h-8 text-blue-600 mr-3" />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">All Donations</h2>
+                  <p className="text-gray-600 dark:text-gray-400">Complete list of all donations from the database</p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAllDonations(false)}
+                className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕ Close
+              </Button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-hidden p-6">
+              <div className="h-full overflow-y-auto">
+                {recentDonations.length === 0 ? (
+                  <div className="text-center py-20">
+                    <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No donations found</h3>
+                    <p className="text-gray-600 dark:text-gray-400">There are no donations in the database yet.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {recentDonations.map((donation: any, index: number) => {
+                      const isMonetary = donation.type === 'monetary';
+                      const donorName = donation.donorName || 'Anonymous';
+                      const category = isMonetary ? 'Money' : donation.category;
+                      const description = isMonetary ? donation.purpose : donation.description;
+                      const location = donation.donorCity || 'Unknown';
+                      const timeAgo = new Date(donation.createdAt).toLocaleDateString();
+                      const amount = isMonetary ? `₹${donation.amount}` : donation.quantity || 'N/A';
+                      
+                      return (
+                        <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 hover:shadow-lg transition-all">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-3 h-3 rounded-full ${isMonetary ? 'bg-green-500' : 'bg-blue-500'}`}></div>
+                              <h3 className="font-bold text-lg text-gray-900 dark:text-white">{donorName}</h3>
+                            </div>
+                            <div className="flex flex-col items-end space-y-1">
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">
+                                {category}
+                              </span>
+                              <span className="text-xs font-medium text-white bg-green-500 px-2 py-1 rounded">
+                                {donation.status || 'pending'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                              {description}
+                            </p>
+                            
+                            {isMonetary && (
+                              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                  {amount}
+                                </div>
+                                <div className="text-xs text-green-700 dark:text-green-300">Monetary Donation</div>
+                              </div>
+                            )}
+                            
+                            {!isMonetary && donation.quantity && (
+                              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                                  Quantity: {donation.quantity}
+                                </div>
+                                <div className="text-xs text-blue-700 dark:text-blue-300">Item Donation</div>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
+                              <span className="flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                </svg>
+                                {location}
+                              </span>
+                              <span className="flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                </svg>
+                                {timeAgo}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {recentDonations.length} total donations from database
+                </div>
+                <Link href="/analytics">
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setShowAllDonations(false)}
+                  >
+                    View Analytics Dashboard
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Page Needy Persons View Modal */}
+      {showAllNeedyPersons && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-6xl h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center">
+                <Users className="w-8 h-8 text-green-600 mr-3" />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">All Needy Persons</h2>
+                  <p className="text-gray-600 dark:text-gray-400">Complete registry of people in need from the database</p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAllNeedyPersons(false)}
+                className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕ Close
+              </Button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-hidden p-6">
+              <div className="h-full overflow-y-auto">
+                {!needyData || !Array.isArray(needyData) || needyData.length === 0 ? (
+                  <div className="text-center py-20">
+                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No needy persons found</h3>
+                    <p className="text-gray-600 dark:text-gray-400">There are no registered needy persons in the database yet.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {needyData.map((person: any, index: number) => (
+                      <div key={person.id || index} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 hover:shadow-lg transition-all">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">{person.name || 'Unknown Name'}</h3>
+                          </div>
+                          <div className="flex flex-col items-end space-y-1">
+                            <span className={`text-xs font-medium px-2 py-1 rounded ${
+                              person.verified 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                            }`}>
+                              {person.verified ? 'Verified' : 'Pending'}
+                            </span>
+                            <span className={`text-xs font-medium px-2 py-1 rounded ${
+                              person.status === 'completed' 
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                            }`}>
+                              {person.status || 'pending'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            <strong>Age:</strong> {person.age || 'N/A'} • <strong>Gender:</strong> {person.gender || 'N/A'}
+                          </div>
+                          
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            <strong>Family Size:</strong> {person.familySize || 'N/A'}
+                          </div>
+                          
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            <strong>Location:</strong> {person.city || 'N/A'}, {person.state || 'N/A'}
+                          </div>
+                          
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            <strong>Situation:</strong> {person.situation || 'No description available'}
+                          </div>
+                          
+                          {person.needs && Array.isArray(person.needs) && person.needs.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {person.needs.map((need: string, needIndex: number) => (
+                                <span key={needIndex} className="px-2 py-1 bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-xs rounded">
+                                  {need}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <strong>Reporter:</strong> {person.reporterName || 'N/A'} ({person.reporterRelationship || 'N/A'})
+                          </div>
+                          
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <strong>Registered:</strong> {person.createdAt ? new Date(person.createdAt).toLocaleDateString() : 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {needyData && Array.isArray(needyData) ? needyData.length : 0} total needy persons from database
+                </div>
+                <Link href="/register-needy">
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => setShowAllNeedyPersons(false)}
+                  >
+                    Register New Person
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>

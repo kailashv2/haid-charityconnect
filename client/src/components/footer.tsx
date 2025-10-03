@@ -95,7 +95,7 @@ export function Footer() {
         <div className="border-t border-gray-800 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-gray-400 text-sm">
-              © 2024 HAID (Helping All In Distress). All rights reserved.
+              © 2025 HAID (Helping All In Distress). All rights reserved.
             </p>
             <div className="flex space-x-6">
               <span className="text-gray-400 hover:text-white cursor-pointer text-sm transition-colors">Privacy Policy</span>
