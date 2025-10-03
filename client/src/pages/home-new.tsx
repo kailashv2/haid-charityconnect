@@ -740,7 +740,16 @@ export default function HomePage() {
 
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-black dark:text-white mb-4">All Registered Needy Persons ({needyData && Array.isArray(needyData) ? needyData.length : 0})</h4>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-semibold text-black dark:text-white">All Registered Needy Persons ({needyData && Array.isArray(needyData) ? needyData.length : 0})</h4>
+                        <Button 
+                          variant="outline" 
+                          className="text-sm px-4 py-2"
+                          onClick={() => setShowAllNeedyPersons(true)}
+                        >
+                          View All
+                        </Button>
+                      </div>
                       {!needyData || !Array.isArray(needyData) || needyData.length === 0 ? (
                         <div className="text-center py-8">
                           <div className="text-gray-300 text-6xl mb-4">👥</div>

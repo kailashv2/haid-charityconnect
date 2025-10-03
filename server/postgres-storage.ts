@@ -238,18 +238,27 @@ export class PostgresStorage implements IStorage {
       count,
     }));
 
-    // Donations by region - get donors for region calculation
+    // Donations by region - get both donors and needy persons for comprehensive regional data
     const allDonors = await this.db.select().from(donors);
     const regionCount: Record<string, number> = {};
+    
+    // Count donations by donor cities
     allDonors.forEach(d => {
       if (d.city) {
         regionCount[d.city] = (regionCount[d.city] || 0) + 1;
       }
     });
-    const donationsByRegion = Object.entries(regionCount).map(([region, count]) => ({
-      region,
-      count,
-    }));
+    
+    // Also include needy persons' cities to show all regions with activity
+    needyPersonsArray.forEach(p => {
+      if (p.city) {
+        regionCount[p.city] = (regionCount[p.city] || 0) + 1;
+      }
+    });
+    
+    const donationsByRegion = Object.entries(regionCount)
+      .map(([region, count]) => ({ region, count }))
+      .sort((a, b) => b.count - a.count); // Sort by count descending
 
     return {
       totalDonations,

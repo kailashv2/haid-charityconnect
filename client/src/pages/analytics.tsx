@@ -93,23 +93,43 @@ export default function AnalyticsPage() {
     }]
   };
 
-  // Regional data with real values
+  // Regional data with real values - show ALL regions without limit
+  const generateColors = (count: number) => {
+    const baseColors = [
+      'hsl(160, 84%, 39%)', // Green
+      'hsl(214, 84%, 56%)', // Blue
+      'hsl(22, 82%, 39%)',  // Orange
+      'hsl(280, 65%, 60%)', // Purple
+      'hsl(45, 93%, 47%)',  // Yellow
+      'hsl(348, 83%, 47%)', // Red
+      'hsl(200, 98%, 39%)', // Cyan
+      'hsl(120, 61%, 50%)', // Lime
+      'hsl(300, 76%, 72%)', // Magenta
+      'hsl(39, 100%, 50%)', // Gold
+    ];
+    
+    // If we need more colors, generate them dynamically
+    const colors = [...baseColors];
+    while (colors.length < count) {
+      const hue = (colors.length * 137.5) % 360; // Golden angle for good distribution
+      colors.push(`hsl(${hue}, 70%, 50%)`);
+    }
+    
+    return colors.slice(0, count);
+  };
+
   const regionalData = {
     labels: (analytics as any)?.donationsByRegion?.length > 0 
-      ? (analytics as any).donationsByRegion.slice(0, 5).map((item: any) => item.region)
+      ? (analytics as any).donationsByRegion.map((item: any) => item.region)
       : ['No regions yet'],
     datasets: [{
-      label: 'Donations by Region',
+      label: 'Activity by Region',
       data: (analytics as any)?.donationsByRegion?.length > 0 
-        ? (analytics as any).donationsByRegion.slice(0, 5).map((item: any) => item.count)
+        ? (analytics as any).donationsByRegion.map((item: any) => item.count)
         : [0],
-      backgroundColor: [
-        'hsl(160, 84%, 39%)',
-        'hsl(214, 84%, 56%)',
-        'hsl(22, 82%, 39%)',
-        'hsl(280, 65%, 60%)',
-        'hsl(45, 93%, 47%)',
-      ],
+      backgroundColor: (analytics as any)?.donationsByRegion?.length > 0 
+        ? generateColors((analytics as any).donationsByRegion.length)
+        : ['hsl(160, 84%, 39%)'],
       borderWidth: 1,
       borderColor: '#ffffff',
     }]
