@@ -5,14 +5,18 @@ import { Heart, Users, DollarSign, ArrowRight, CheckCircle, Gift, Handshake, Tre
 import { useState, useEffect } from "react";
 
 export default function HomePage() {
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading, refetch: refetchAnalytics } = useQuery({
     queryKey: ['/api/analytics'],
-    refetchInterval: 30000,
+    refetchInterval: 5000, // More frequent updates
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always fetch fresh data
   });
 
-  const { data: donationsData } = useQuery({
+  const { data: donationsData, refetch: refetchDonations } = useQuery({
     queryKey: ['/api/donations'],
-    refetchInterval: 30000,
+    refetchInterval: 5000, // More frequent updates
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always fetch fresh data
   });
 
   const formatCurrency = (amount: number) => {
@@ -35,6 +39,17 @@ export default function HomePage() {
 
   // Image carousel for hero section
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Modal state for impact cards
+  const [selectedCard, setSelectedCard] = useState<string | null>(null);
+
+  // Function to handle card clicks and refresh data
+  const handleCardClick = (cardType: string) => {
+    setSelectedCard(cardType);
+    // Force refresh data when modal opens
+    refetchAnalytics();
+    refetchDonations();
+  };
   
   const heroImages = [
     {
@@ -104,7 +119,7 @@ export default function HomePage() {
                   </Button>
                 </Link>
                 <Link href="/donate-money">
-                  <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 font-semibold px-8 py-3 text-base hover:shadow-lg transition-all duration-300">
+                  <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 text-base shadow-lg hover:shadow-xl transition-all duration-300">
                     Contribute Now
                   </Button>
                 </Link>
@@ -165,9 +180,14 @@ export default function HomePage() {
       <section className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <p className="text-blue-600 dark:text-blue-400 font-semibold mb-2 uppercase tracking-wide text-sm">
-              * Real data. Real impact. Real transparency.
-            </p>
+            <div className="flex items-center justify-center mb-2">
+              <div className="flex items-center bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-full">
+                <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full mr-2"></div>
+                <p className="text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wide text-sm">
+                  Real Data - Grows with Every Contribution
+                </p>
+              </div>
+            </div>
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6">
               Our Impact in Numbers
             </h2>
@@ -179,34 +199,46 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
             {/* Total Donations */}
             <div className="text-center group">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
+              <div 
+                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 cursor-pointer"
+                onClick={() => handleCardClick('donations')}
+              >
                 <div className="text-6xl lg:text-7xl font-bold text-blue-600 dark:text-blue-400 mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {isLoading ? "..." : (analytics as any)?.totalDonations?.toLocaleString() || "0"}
+                  {isLoading ? "..." : allDonations.length.toLocaleString()}
                 </div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white mb-2">Total Donations</div>
                 <div className="text-gray-600 dark:text-gray-300">Items and money contributed</div>
+                <div className="mt-4 text-sm text-blue-600 dark:text-blue-400 font-medium">Click for details →</div>
               </div>
             </div>
 
             {/* People Helped */}
             <div className="text-center group">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
+              <div 
+                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 cursor-pointer"
+                onClick={() => handleCardClick('people')}
+              >
                 <div className="text-6xl lg:text-7xl font-bold text-green-600 dark:text-green-400 mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {isLoading ? "..." : (analytics as any)?.peopleHelped?.toLocaleString() || "0"}
+                  {isLoading ? "..." : allDonations.filter(d => d.status === 'completed').length.toLocaleString()}
                 </div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white mb-2">People Helped</div>
                 <div className="text-gray-600 dark:text-gray-300">Lives positively impacted</div>
+                <div className="mt-4 text-sm text-green-600 dark:text-green-400 font-medium">Click for details →</div>
               </div>
             </div>
 
             {/* Amount Raised */}
             <div className="text-center group">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
+              <div 
+                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 cursor-pointer"
+                onClick={() => handleCardClick('amount')}
+              >
                 <div className="text-5xl lg:text-6xl font-bold text-purple-600 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {isLoading ? "..." : formatCurrency((analytics as any)?.totalMonetaryAmount || 0)}
+                  {isLoading ? "..." : formatCurrency(monetaryDonations.reduce((sum: number, d: any) => sum + (parseFloat(d.amount) || 0), 0))}
                 </div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white mb-2">Amount Raised</div>
                 <div className="text-gray-600 dark:text-gray-300">Funds collected for causes</div>
+                <div className="mt-4 text-sm text-purple-600 dark:text-purple-400 font-medium">Click for details →</div>
               </div>
             </div>
           </div>
@@ -406,29 +438,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="text-center">
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <Link href="/donate-items">
-                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-10 py-4 text-lg font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  <Gift className="w-6 h-6 mr-3" />
-                  Donate Items
-                </Button>
-              </Link>
-              <Link href="/donate-money">
-                <Button size="lg" className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-10 py-4 text-lg font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  <Heart className="w-6 h-6 mr-3" />
-                  Contribute Money
-                </Button>
-              </Link>
-              <Link href="/register-needy">
-                <Button size="lg" variant="outline" className="border-2 border-purple-600 text-purple-600 hover:bg-purple-50 px-10 py-4 text-lg font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
-                  <Users className="w-6 h-6 mr-3" />
-                  Register Someone in Need
-                </Button>
-              </Link>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -456,6 +465,408 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* Impact Details Modal */}
+      {selectedCard && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center">
+                {selectedCard === 'donations' && (
+                  <>
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Total Donations Details</h3>
+                  </>
+                )}
+                {selectedCard === 'people' && (
+                  <>
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">People Helped Details</h3>
+                  </>
+                )}
+                {selectedCard === 'amount' && (
+                  <>
+                    <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.51-1.31c-.562-.649-1.413-1.076-2.353-1.253V5z" clipRule="evenodd"/>
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Amount Raised Details</h3>
+                  </>
+                )}
+              </div>
+              <button 
+                onClick={() => setSelectedCard(null)}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-xl w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {selectedCard === 'donations' && (
+                <div>
+                  <div className="text-center mb-6">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Complete breakdown of all donations received</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 mb-8">
+                    <div className="text-center">
+                      <h5 className="text-blue-500 font-medium mb-2 text-sm">Item Donations</h5>
+                      <div className="text-5xl font-bold text-black dark:text-white mb-1">
+                        {itemDonations.length}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <h5 className="text-green-500 font-medium mb-2 text-sm">Monetary Donations</h5>
+                      <div className="text-5xl font-bold text-black dark:text-white mb-1">
+                        {monetaryDonations.length}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-black dark:text-white mb-4">
+                        All Item Donations ({itemDonations.length})
+                      </h4>
+                      
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl mb-4">
+                        <div className="flex items-center mb-3">
+                          <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                          <span className="font-medium text-black dark:text-white text-sm">Donation Impact</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-6 text-sm">
+                          <div>
+                            <span className="text-green-600 dark:text-green-400">Items Delivered: </span>
+                            <span className="font-bold text-black dark:text-white">{itemDonations.filter((d: any) => d.status === 'completed').length}</span>
+                          </div>
+                          <div>
+                            <span className="text-blue-600 dark:text-blue-400">In Processing: </span>
+                            <span className="font-bold text-black dark:text-white">{itemDonations.filter((d: any) => d.status === 'pending').length}</span>
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <span className="text-purple-600 dark:text-purple-400">Success Rate: </span>
+                          <span className="font-bold text-black dark:text-white">
+                            {itemDonations.length > 0 ? Math.round((itemDonations.filter((d: any) => d.status === 'completed').length / itemDonations.length) * 100) : 0}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {itemDonations.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="text-gray-300 text-6xl mb-4">📦</div>
+                          <p className="text-gray-400 dark:text-gray-500 text-sm">No item donations yet. Be the first to donate items!</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <h5 className="font-medium text-black dark:text-white text-sm mb-3">Recent Item Donations:</h5>
+                          {itemDonations.slice(0, 5).map((donation: any, index: number) => (
+                            <div key={donation.id || index} className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-3 border-blue-500">
+                              <div className="flex justify-between items-center">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-semibold text-black dark:text-white text-sm">
+                                      {donation.category}
+                                    </span>
+                                    {donation.status && (
+                                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                                        donation.status === 'completed' 
+                                          ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                                          : donation.status === 'pending'
+                                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                                          : 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300'
+                                      }`}>
+                                        {donation.status}
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                    {donation.description && `${donation.description} • `}
+                                    {donation.quantity && `Qty: ${donation.quantity} • `}
+                                    {donation.condition && donation.condition}
+                                  </div>
+                                  
+                                  <div className="text-xs text-gray-400 dark:text-gray-500">
+                                    {donation.donorName && `Donor: ${donation.donorName} • `}
+                                    {new Date(donation.createdAt).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {itemDonations.length > 5 && (
+                            <div className="text-center py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                📦 And {itemDonations.length - 5} more item donations in database...
+                              </span>
+                              <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                Total: {itemDonations.length} items • Completed: {itemDonations.filter((d: any) => d.status === 'completed').length} • Pending: {itemDonations.filter((d: any) => d.status === 'pending').length}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 className="text-lg font-semibold text-black dark:text-white mb-4">
+                        All Monetary Donations ({monetaryDonations.length})
+                      </h4>
+                      
+                      {monetaryDonations.length === 0 ? (
+                        <div className="text-center py-8">
+                          <div className="text-gray-300 text-6xl mb-4">♡</div>
+                          <p className="text-gray-400 dark:text-gray-500 text-sm">No monetary donations yet. Be the first to contribute!</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {monetaryDonations.slice(0, 5).map((donation: any, index: number) => (
+                            <div key={index} className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                              <div>
+                                <div className="font-semibold text-black dark:text-white">
+                                  {formatCurrency(donation.amount || 0)}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  {donation.purpose || 'General donation'}
+                                </div>
+                              </div>
+                              <div className="text-sm text-gray-400 dark:text-gray-500">
+                                {new Date(donation.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {selectedCard === 'people' && (
+                <div>
+                  <div className="text-center mb-6">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Information about verified individuals who received assistance</p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 mb-8">
+                    <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl text-center">
+                      <h5 className="text-green-600 font-medium mb-2 text-sm">Verified & Helped</h5>
+                      <div className="text-4xl font-bold text-black dark:text-white">
+                        {allDonations.filter(d => d.status === 'completed').length}
+                      </div>
+                    </div>
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-xl text-center">
+                      <h5 className="text-yellow-600 font-medium mb-2 text-sm">Pending Verification</h5>
+                      <div className="text-4xl font-bold text-black dark:text-white">
+                        {allDonations.filter(d => d.status === 'pending').length}
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl text-center">
+                      <h5 className="text-blue-600 font-medium mb-2 text-sm">Total Registered</h5>
+                      <div className="text-4xl font-bold text-black dark:text-white">
+                        {allDonations.length}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-black dark:text-white mb-4">Verified & Helped People</h4>
+                      {allDonations.filter(d => d.status === 'completed').length === 0 ? (
+                        <p className="text-gray-400 dark:text-gray-500 text-center py-4 text-sm">No verified cases yet.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {allDonations.filter(d => d.status === 'completed').slice(0, 3).map((donation: any, index: number) => (
+                            <div key={index} className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                              <div className="font-medium text-black dark:text-white">
+                                {donation.type === 'monetary' ? `₹${donation.amount} donation` : `${donation.category} donation`}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                Completed on {new Date(donation.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 className="text-lg font-semibold text-black dark:text-white mb-4">Pending Verification</h4>
+                      {allDonations.filter(d => d.status === 'pending').length === 0 ? (
+                        <p className="text-gray-400 dark:text-gray-500 text-center py-4 text-sm">No pending cases.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          {allDonations.filter(d => d.status === 'pending').slice(0, 3).map((donation: any, index: number) => (
+                            <div key={index} className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl">
+                              <div className="font-medium text-black dark:text-white">
+                                {donation.type === 'monetary' ? `₹${donation.amount} donation` : `${donation.category} donation`}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                Submitted on {new Date(donation.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+                      <div className="flex items-center mb-3">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                        <span className="font-medium text-black dark:text-white text-sm">Summary</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-6 text-sm">
+                        <div>
+                          <span className="text-blue-600 dark:text-blue-400">Total Registered: </span>
+                          <span className="font-bold text-black dark:text-white">{allDonations.length}</span>
+                        </div>
+                        <div>
+                          <span className="text-green-600 dark:text-green-400">Successfully Helped: </span>
+                          <span className="font-bold text-black dark:text-white">{allDonations.filter(d => d.status === 'completed').length}</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-6 text-sm mt-3">
+                        <div>
+                          <span className="text-yellow-600 dark:text-yellow-400">Awaiting Verification: </span>
+                          <span className="font-bold text-black dark:text-white">{allDonations.filter(d => d.status === 'pending').length}</span>
+                        </div>
+                        <div>
+                          <span className="text-blue-600 dark:text-blue-400">Success Rate: </span>
+                          <span className="font-bold text-black dark:text-white">
+                            {allDonations.length > 0 ? Math.round((allDonations.filter(d => d.status === 'completed').length / allDonations.length) * 100) : 0}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {selectedCard === 'amount' && (
+                <div>
+                  <div className="text-center mb-6">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Breakdown of monetary contributions received</p>
+                  </div>
+
+                  <div className="text-center mb-8">
+                    <div className="text-6xl font-bold text-orange-600 dark:text-orange-400 mb-2">
+                      {formatCurrency(monetaryDonations.reduce((sum: number, d: any) => sum + (d.amount || 0), 0))}
+                    </div>
+                    <div className="text-gray-500 dark:text-gray-400 text-sm">Total Amount Raised</div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 mb-8">
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-orange-600 dark:text-orange-400 mb-2">
+                        {monetaryDonations.filter((d: any) => d.status === 'completed').length}
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400 text-sm">Completed Donations</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-black dark:text-white mb-2">
+                        {monetaryDonations.filter((d: any) => d.status === 'pending').length}
+                      </div>
+                      <div className="text-gray-500 dark:text-gray-400 text-sm">Pending Donations</div>
+                    </div>
+                  </div>
+
+                  {monetaryDonations.length === 0 ? (
+                    <div className="text-center py-16">
+                      <div className="text-gray-300 text-8xl mb-6">♡</div>
+                      <p className="text-gray-400 dark:text-gray-500 text-sm mb-8">No monetary donations yet. Be the first to contribute!</p>
+                      <Link href="/donate-money">
+                        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg font-medium">
+                          Donate Money
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="text-lg font-semibold text-black dark:text-white mb-4">Recent Monetary Donations</h4>
+                        <div className="space-y-3">
+                          {monetaryDonations.slice(0, 5).map((donation: any, index: number) => (
+                            <div key={index} className="flex justify-between items-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
+                              <div>
+                                <div className="font-bold text-orange-600 dark:text-orange-400 text-lg">
+                                  {formatCurrency(donation.amount || 0)}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  {donation.purpose || 'General donation'}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm text-gray-400 dark:text-gray-500">
+                                  {new Date(donation.createdAt).toLocaleDateString()}
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs mt-1 inline-block ${
+                                  donation.status === 'completed' 
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                                    : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                                }`}>
+                                  {donation.status}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl">
+                        <h5 className="font-medium text-black dark:text-white mb-3 text-sm">Summary</h5>
+                        <div className="grid grid-cols-2 gap-6 text-sm">
+                          <div>
+                            <span className="text-orange-600 dark:text-orange-400">Total Raised: </span>
+                            <span className="font-bold text-black dark:text-white">{formatCurrency(monetaryDonations.reduce((sum: number, d: any) => sum + (d.amount || 0), 0))}</span>
+                          </div>
+                          <div>
+                            <span className="text-green-600 dark:text-green-400">Completed: </span>
+                            <span className="font-bold text-black dark:text-white">{monetaryDonations.filter((d: any) => d.status === 'completed').length}</span>
+                          </div>
+                          <div>
+                            <span className="text-yellow-600 dark:text-yellow-400">Pending: </span>
+                            <span className="font-bold text-black dark:text-white">{monetaryDonations.filter((d: any) => d.status === 'pending').length}</span>
+                          </div>
+                          <div>
+                            <span className="text-blue-600 dark:text-blue-400">Success Rate: </span>
+                            <span className="font-bold text-black dark:text-white">
+                              {monetaryDonations.length > 0 ? Math.round((monetaryDonations.filter((d: any) => d.status === 'completed').length / monetaryDonations.length) * 100) : 0}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-8 flex justify-center">
+              <Link href="/analytics">
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                  onClick={() => setSelectedCard(null)}
+                >
+                  View Full Analytics
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

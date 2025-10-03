@@ -45,7 +45,26 @@ export class PostgresStorage implements IStorage {
   }
 
   async getItemDonations(): Promise<ItemDonation[]> {
-    return await this.db.select().from(itemDonations).orderBy(desc(itemDonations.createdAt));
+    return await this.db.select({
+      id: itemDonations.id,
+      donorId: itemDonations.donorId,
+      category: itemDonations.category,
+      condition: itemDonations.condition,
+      description: itemDonations.description,
+      quantity: itemDonations.quantity,
+      pickupDate: itemDonations.pickupDate,
+      pickupTimeSlot: itemDonations.pickupTimeSlot,
+      pickupInstructions: itemDonations.pickupInstructions,
+      status: itemDonations.status,
+      createdAt: itemDonations.createdAt,
+      donorName: donors.name,
+      donorEmail: donors.email,
+      donorPhone: donors.phone,
+      donorCity: donors.city
+    })
+    .from(itemDonations)
+    .leftJoin(donors, eq(itemDonations.donorId, donors.id))
+    .orderBy(desc(itemDonations.createdAt));
   }
 
   async getItemDonationsByDonor(donorId: string): Promise<ItemDonation[]> {
@@ -72,7 +91,23 @@ export class PostgresStorage implements IStorage {
   }
 
   async getMonetaryDonations(): Promise<MonetaryDonation[]> {
-    return await this.db.select().from(monetaryDonations).orderBy(desc(monetaryDonations.createdAt));
+    return await this.db.select({
+      id: monetaryDonations.id,
+      donorId: monetaryDonations.donorId,
+      amount: monetaryDonations.amount,
+      purpose: monetaryDonations.purpose,
+      message: monetaryDonations.message,
+      stripePaymentIntentId: monetaryDonations.stripePaymentIntentId,
+      status: monetaryDonations.status,
+      createdAt: monetaryDonations.createdAt,
+      donorName: donors.name,
+      donorEmail: donors.email,
+      donorPhone: donors.phone,
+      donorCity: donors.city
+    })
+    .from(monetaryDonations)
+    .leftJoin(donors, eq(monetaryDonations.donorId, donors.id))
+    .orderBy(desc(monetaryDonations.createdAt));
   }
 
   async getMonetaryDonationsByDonor(donorId: string): Promise<MonetaryDonation[]> {
