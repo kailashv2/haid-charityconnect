@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Navigation } from "@/components/navigation";
 import { Footer } from "@/components/footer";
-import HomePage from "@/pages/home";
+import HomePage from "@/pages/home-new";
 import DonateItemsPage from "@/pages/donate-items";
 import DonateMoneyPage from "@/pages/donate-money";
 import RegisterNeedyPage from "@/pages/register-needy";

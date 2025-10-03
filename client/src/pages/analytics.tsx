@@ -33,6 +33,10 @@ ChartJS.register(
 export default function AnalyticsPage() {
   const { data: analytics, isLoading, error } = useQuery({
     queryKey: ['/api/analytics'],
+    refetchInterval: 5000, // Refresh charts every 5 seconds for immediate updates
+    staleTime: 2000, // Consider data stale after 2 seconds
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: true, // Always refetch on component mount
   });
 
   const formatCurrency = (amount: number) => {
@@ -53,49 +57,84 @@ export default function AnalyticsPage() {
     );
   }
 
-  // Chart configurations
+  // Chart configurations with real-time data - completely rebuilt
+  const totalDonations = (analytics as any)?.totalDonations || 0;
+  const totalItemDonations = (analytics as any)?.totalItemDonations || 0;
+  const monetaryDonations = Math.max(0, totalDonations - totalItemDonations);
+
   const donationTypesData = {
-    labels: ['Money Donations', 'Item Donations'],
+    labels: ['Item Donations', 'Money Donations'],
     datasets: [{
-      data: analytics ? [
-        (analytics as any).totalDonations - (analytics as any).totalItemDonations,
-        (analytics as any).totalItemDonations
-      ] : [0, 0],
+      data: [totalItemDonations, monetaryDonations],
       backgroundColor: [
-        'hsl(214, 84%, 56%)', // Primary
-        'hsl(160, 84%, 39%)', // Secondary
+        'hsl(160, 84%, 39%)', // Secondary - Items
+        'hsl(214, 84%, 56%)', // Primary - Money
       ],
-      borderWidth: 0,
+      borderWidth: 2,
+      borderColor: '#ffffff',
     }]
   };
 
+  // Real monthly trend data from backend
   const monthlyTrendData = {
     labels: (analytics as any)?.monthlyTrend?.map((item: any) => item.month) || [],
     datasets: [{
-      label: 'Donations',
+      label: 'Total Donations',
       data: (analytics as any)?.monthlyTrend?.map((item: any) => item.count) || [],
       borderColor: 'hsl(214, 84%, 56%)',
       backgroundColor: 'hsla(214, 84%, 56%, 0.1)',
       tension: 0.4,
       fill: true,
+      pointBackgroundColor: 'hsl(214, 84%, 56%)',
+      pointBorderColor: '#ffffff',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
     }]
   };
 
+  // Regional data with real values
   const regionalData = {
-    labels: (analytics as any)?.donationsByRegion?.slice(0, 5).map((item: any) => item.region) || [],
+    labels: (analytics as any)?.donationsByRegion?.length > 0 
+      ? (analytics as any).donationsByRegion.slice(0, 5).map((item: any) => item.region)
+      : ['No regions yet'],
     datasets: [{
       label: 'Donations by Region',
-      data: (analytics as any)?.donationsByRegion?.slice(0, 5).map((item: any) => item.count) || [],
-      backgroundColor: 'hsl(160, 84%, 39%)',
+      data: (analytics as any)?.donationsByRegion?.length > 0 
+        ? (analytics as any).donationsByRegion.slice(0, 5).map((item: any) => item.count)
+        : [0],
+      backgroundColor: [
+        'hsl(160, 84%, 39%)',
+        'hsl(214, 84%, 56%)',
+        'hsl(22, 82%, 39%)',
+        'hsl(280, 65%, 60%)',
+        'hsl(45, 93%, 47%)',
+      ],
+      borderWidth: 1,
+      borderColor: '#ffffff',
     }]
   };
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 1000,
+    },
     plugins: {
       legend: {
         position: 'bottom' as const,
+        labels: {
+          padding: 20,
+          usePointStyle: true,
+        },
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        borderColor: 'hsl(214, 84%, 56%)',
+        borderWidth: 1,
       },
     },
   };
@@ -105,6 +144,14 @@ export default function AnalyticsPage() {
     scales: {
       y: {
         beginAtZero: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.1)',
+        },
+      },
+      x: {
+        grid: {
+          display: false,
+        },
       },
     },
   };
@@ -225,7 +272,11 @@ export default function AnalyticsPage() {
                   <Skeleton className="w-48 h-48 rounded-full" />
                 </div>
               ) : (
-                <Doughnut data={donationTypesData} options={chartOptions} />
+                <Doughnut 
+                  key={`doughnut-${totalDonations}-${totalItemDonations}-${Date.now()}`}
+                  data={donationTypesData} 
+                  options={chartOptions} 
+                />
               )}
             </div>
           </CardContent>
@@ -241,7 +292,11 @@ export default function AnalyticsPage() {
                   <Skeleton className="w-full h-48" />
                 </div>
               ) : (
-                <Line data={monthlyTrendData} options={chartOptions} />
+                <Line 
+                  key={`line-${totalDonations}-${Date.now()}`}
+                  data={monthlyTrendData} 
+                  options={chartOptions} 
+                />
               )}
             </div>
           </CardContent>
@@ -309,7 +364,11 @@ export default function AnalyticsPage() {
                   <Skeleton className="w-full h-48" />
                 </div>
               ) : (
-                <Bar data={regionalData} options={barChartOptions} />
+                <Bar 
+                  key={`bar-${(analytics as any)?.donationsByRegion?.length || 0}-${Date.now()}`}
+                  data={regionalData} 
+                  options={barChartOptions} 
+                />
               )}
             </div>
           </CardContent>

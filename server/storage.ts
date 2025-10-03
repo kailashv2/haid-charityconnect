@@ -33,6 +33,7 @@ export interface IStorage {
   createNeedyPerson(person: InsertNeedyPerson): Promise<NeedyPerson>;
   getNeedyPersons(): Promise<NeedyPerson[]>;
   getNeedyPerson(id: string): Promise<NeedyPerson | undefined>;
+  updateNeedyPersonStatus(id: string, status: string, verified?: boolean): Promise<NeedyPerson | undefined>;
 
   // SMS Logs
   createSmsLog(log: InsertSmsLog): Promise<SmsLog>;
@@ -142,14 +143,26 @@ export class MemStorage implements IStorage {
   async createNeedyPerson(insertNeedy: InsertNeedyPerson): Promise<NeedyPerson> {
     const id = randomUUID();
     const needyPerson: NeedyPerson = {
-      ...insertNeedy,
       id,
+      name: insertNeedy.name,
+      age: insertNeedy.age,
+      gender: insertNeedy.gender,
+      phone: insertNeedy.phone || null,
+      familySize: insertNeedy.familySize || null,
+      address: insertNeedy.address,
+      city: insertNeedy.city,
+      state: insertNeedy.state,
+      pincode: insertNeedy.pincode,
+      needs: insertNeedy.needs as string[],
+      situation: insertNeedy.situation,
+      income: insertNeedy.income ? insertNeedy.income.toString() : null,
+      reporterName: insertNeedy.reporterName,
+      reporterPhone: insertNeedy.reporterPhone,
+      reporterEmail: insertNeedy.reporterEmail,
+      reporterRelationship: insertNeedy.reporterRelationship,
       verified: false,
       status: "pending",
       createdAt: new Date(),
-      phone: insertNeedy.phone || null,
-      familySize: insertNeedy.familySize || null,
-      income: insertNeedy.income || null,
     };
     this.needyPersons.set(id, needyPerson);
     return needyPerson;
@@ -161,6 +174,18 @@ export class MemStorage implements IStorage {
 
   async getNeedyPerson(id: string): Promise<NeedyPerson | undefined> {
     return this.needyPersons.get(id);
+  }
+
+  async updateNeedyPersonStatus(id: string, status: string, verified?: boolean): Promise<NeedyPerson | undefined> {
+    const needyPerson = this.needyPersons.get(id);
+    if (needyPerson) {
+      needyPerson.status = status;
+      if (verified !== undefined) {
+        needyPerson.verified = verified;
+      }
+      this.needyPersons.set(id, needyPerson);
+    }
+    return needyPerson;
   }
 
   async createSmsLog(insertLog: InsertSmsLog): Promise<SmsLog> {
@@ -192,15 +217,40 @@ export class MemStorage implements IStorage {
     const peopleHelped = needyPersons.filter(p => p.verified).length;
     const activeCases = needyPersons.filter(p => p.status === "pending").length;
 
-    // Monthly trend (last 6 months)
-    const monthlyTrend = [
-      { month: "Jan", count: 45, amount: 125000 },
-      { month: "Feb", count: 60, amount: 180000 },
-      { month: "Mar", count: 85, amount: 245000 },
-      { month: "Apr", count: 120, amount: 320000 },
-      { month: "May", count: 95, amount: 280000 },
-      { month: "Jun", count: 140, amount: 420000 },
-    ];
+    // Monthly trend - calculated from real data (last 6 months)
+    const monthlyTrend = [];
+    const currentDate = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      
+      // Count donations for this month
+      const monthItemDonations = itemDonations.filter(d => {
+        if (!d.createdAt) return false;
+        const donationDate = new Date(d.createdAt);
+        return donationDate.getFullYear() === year && donationDate.getMonth() === month;
+      });
+      
+      const monthMonetaryDonations = monetaryDonations.filter(d => {
+        if (!d.createdAt) return false;
+        const donationDate = new Date(d.createdAt);
+        return donationDate.getFullYear() === year && donationDate.getMonth() === month;
+      });
+      
+      const monthCount = monthItemDonations.length + monthMonetaryDonations.length;
+      const monthAmount = monthMonetaryDonations
+        .filter(d => d.status === "completed")
+        .reduce((sum, d) => sum + parseFloat(d.amount), 0);
+      
+      monthlyTrend.push({
+        month: monthName,
+        count: monthCount,
+        amount: monthAmount
+      });
+    }
 
     // Donations by category
     const categoryCount: Record<string, number> = {};
@@ -215,9 +265,11 @@ export class MemStorage implements IStorage {
     // Needs by category
     const needsCount: Record<string, number> = {};
     needyPersons.forEach(p => {
-      p.needs.forEach((need: string) => {
-        needsCount[need] = (needsCount[need] || 0) + 1;
-      });
+      if (Array.isArray(p.needs)) {
+        p.needs.forEach((need: string) => {
+          needsCount[need] = (needsCount[need] || 0) + 1;
+        });
+      }
     });
     const needsByCategory = Object.entries(needsCount).map(([category, count]) => ({
       category,
@@ -251,4 +303,11 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { PostgresStorage } from "./postgres-storage";
+
+// Use PostgreSQL if DATABASE_URL is provided, otherwise use in-memory storage
+export const storage = process.env.DATABASE_URL 
+  ? new PostgresStorage() 
+  : new MemStorage();
+
+console.log(`📊 Using ${process.env.DATABASE_URL ? 'PostgreSQL' : 'In-Memory'} storage`);

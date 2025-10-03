@@ -22,28 +22,97 @@ export function Navigation() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="sticky top-0 z-50 w-full bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link href="/" className="flex items-center space-x-2" data-testid="link-home-nav">
-            <Heart className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold text-primary">HAID</span>
+          <Link href="/" className="flex items-center space-x-3" data-testid="link-home-nav">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Heart className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">HAID</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href} data-testid={`link-${item.label.toLowerCase().replace(' ', '-')}-nav`}>
-                <Button
-                  variant={isActive(item.href) ? "default" : "ghost"}
-                  className="flex items-center space-x-2"
-                >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </Button>
-              </Link>
-            ))}
-            <ThemeToggle />
+          {/* Desktop Navigation - Exact HAID Style */}
+          <div className="hidden md:flex items-center space-x-2">
+            {/* Home Button */}
+            <Link href="/">
+              <Button 
+                size="sm"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  isActive("/") 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                <Heart className="w-4 h-4" />
+                Home
+              </Button>
+            </Link>
+
+            {/* Donate Items */}
+            <Link href="/donate-items">
+              <Button 
+                size="sm"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  isActive("/donate-items") 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                <Gift className="w-4 h-4" />
+                Donate Items
+              </Button>
+            </Link>
+
+            {/* Donate Money */}
+            <Link href="/donate-money">
+              <Button 
+                size="sm"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  isActive("/donate-money") 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                <HandHeart className="w-4 h-4" />
+                Donate Money
+              </Button>
+            </Link>
+
+            {/* Register Needy */}
+            <Link href="/register-needy">
+              <Button 
+                size="sm"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  isActive("/register-needy") 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Register Needy
+              </Button>
+            </Link>
+
+            {/* Analytics */}
+            <Link href="/analytics">
+              <Button 
+                size="sm"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  isActive("/analytics") 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                Analytics
+              </Button>
+            </Link>
+
+            {/* Theme Toggle */}
+            <div className="ml-4">
+              <ThemeToggle />
+            </div>
           </div>
 
           {/* Mobile Menu Button */}

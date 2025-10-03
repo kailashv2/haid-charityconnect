@@ -1,10 +1,41 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+// Load environment variables
+if (process.env.NODE_ENV !== "production") {
+  try {
+    require('dotenv').config();
+  } catch (error) {
+    console.warn('dotenv not available, using system environment variables');
+  }
+}
+
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === "production" 
+    ? process.env.FRONTEND_URL || false
+    : ["http://localhost:3000", "http://localhost:5000", "http://127.0.0.1:5000"],
+  credentials: true
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Serve static assets from attached_assets folder
+app.use('/attached_assets', express.static('attached_assets'));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -64,8 +95,11 @@ app.use((req, res, next) => {
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    console.log(`\n🌐 CharityConnect (HAID) is running!`);
+    console.log(`📱 Open in browser: \x1b[36mhttp://localhost:${port}\x1b[0m`);
+    console.log(`🏥 Health check: \x1b[36mhttp://localhost:${port}/api/health\x1b[0m`);
+    console.log(`📊 Analytics: \x1b[36mhttp://localhost:${port}/analytics\x1b[0m\n`);
   });
 })();

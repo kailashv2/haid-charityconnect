@@ -1,9 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { TrendingUp, Users, DollarSign, FileText, Heart, ArrowRight, Sparkles } from "lucide-react";
+import { TrendingUp, Users, DollarSign, FileText, Heart, ArrowRight, Sparkles, X, Eye } from "lucide-react";
 import { useState, useEffect } from "react";
 import { RecentDonations } from "@/components/recent-donations";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Import the generated images
 import foodDistributionImage from "@assets/generated_images/Food_distribution_to_needy_families_d3150708.png";
@@ -16,8 +23,23 @@ export default function HomePage() {
     queryKey: ['/api/analytics'],
   });
 
+  // Fetch donations data for details
+  const { data: donationsData } = useQuery({
+    queryKey: ['/api/donations'],
+  });
+
+  // Fetch needy persons data for details
+  const { data: needyData } = useQuery({
+    queryKey: ['/api/needy'],
+  });
+
   // Image carousel state
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Dialog states
+  const [showDonationsDialog, setShowDonationsDialog] = useState(false);
+  const [showPeopleDialog, setShowPeopleDialog] = useState(false);
+  const [showAmountDialog, setShowAmountDialog] = useState(false);
   
   const carouselImages = [
     {
@@ -176,7 +198,10 @@ export default function HomePage() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="bg-muted p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105">
+            <div 
+              className="bg-muted p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer group relative"
+              onClick={() => setShowDonationsDialog(true)}
+            >
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-8 h-8 text-primary" />
               </div>
@@ -184,8 +209,14 @@ export default function HomePage() {
                 {isLoading ? "..." : (analytics as any)?.totalDonations?.toLocaleString() || "0"}
               </div>
               <div className="text-muted-foreground font-medium">Total Donations</div>
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Eye className="w-5 h-5 text-primary" />
+              </div>
             </div>
-            <div className="bg-muted p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105">
+            <div 
+              className="bg-muted p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer group relative"
+              onClick={() => setShowPeopleDialog(true)}
+            >
               <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-secondary" />
               </div>
@@ -193,8 +224,14 @@ export default function HomePage() {
                 {isLoading ? "..." : (analytics as any)?.peopleHelped?.toLocaleString() || "0"}
               </div>
               <div className="text-muted-foreground font-medium">People Helped</div>
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Eye className="w-5 h-5 text-secondary" />
+              </div>
             </div>
-            <div className="bg-muted p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105">
+            <div 
+              className="bg-muted p-8 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105 cursor-pointer group relative"
+              onClick={() => setShowAmountDialog(true)}
+            >
               <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <DollarSign className="w-8 h-8 text-accent" />
               </div>
@@ -202,6 +239,9 @@ export default function HomePage() {
                 {isLoading ? "..." : formatCurrency((analytics as any)?.totalMonetaryAmount || 0)}
               </div>
               <div className="text-muted-foreground font-medium">Amount Raised</div>
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Eye className="w-5 h-5 text-accent" />
+              </div>
             </div>
           </div>
         </div>
@@ -280,6 +320,339 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Donations Details Dialog */}
+      <Dialog open={showDonationsDialog} onOpenChange={setShowDonationsDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-6 h-6 text-primary" />
+              Total Donations Details
+            </DialogTitle>
+            <DialogDescription>
+              Complete breakdown of all donations received
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-primary/10 p-4 rounded-lg">
+                <h4 className="font-semibold text-primary mb-2">Item Donations</h4>
+                <p className="text-2xl font-bold">{(donationsData as any)?.itemDonations?.length || 0}</p>
+              </div>
+              <div className="bg-secondary/10 p-4 rounded-lg">
+                <h4 className="font-semibold text-secondary mb-2">Monetary Donations</h4>
+                <p className="text-2xl font-bold">{(donationsData as any)?.monetaryDonations?.length || 0}</p>
+              </div>
+            </div>
+            
+            {/* All Item Donations */}
+            <div>
+              <h4 className="font-semibold mb-3">All Item Donations ({(donationsData as any)?.itemDonations?.length || 0})</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {(donationsData as any)?.itemDonations?.map((donation: any, index: number) => {
+                  // Determine if donation has helped someone based on status and age
+                  const isDelivered = donation.status === 'completed' || donation.status === 'delivered';
+                  const isOld = new Date().getTime() - new Date(donation.createdAt).getTime() > 7 * 24 * 60 * 60 * 1000; // 7 days old
+                  const hasHelped = isDelivered || (isOld && donation.status !== 'cancelled');
+                  
+                  return (
+                    <div key={index} className="bg-muted p-3 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium">{donation.category}</p>
+                            {hasHelped ? (
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs flex items-center gap-1">
+                                ✅ Helped
+                              </span>
+                            ) : (
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center gap-1">
+                                📦 Processing
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{donation.description}</p>
+                          {donation.quantity && (
+                            <p className="text-xs text-muted-foreground">
+                              Quantity: {donation.quantity}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Donated: {new Date(donation.createdAt).toLocaleDateString()}
+                          </p>
+                          {hasHelped && (
+                            <p className="text-xs text-green-600 font-medium">
+                              🎯 Impact: Reached people in need
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1 ml-2">
+                          <span className="bg-primary/20 text-primary px-2 py-1 rounded text-xs text-center">
+                            {donation.condition}
+                          </span>
+                          <span className={`px-2 py-1 rounded text-xs text-center ${
+                            donation.status === 'completed' || donation.status === 'delivered'
+                              ? 'bg-green-100 text-green-800'
+                              : donation.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {donation.status || 'pending'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }) || <p className="text-muted-foreground">No item donations yet</p>}
+              </div>
+              
+              {/* Donation Impact Summary */}
+              <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
+                <h5 className="font-semibold text-sm mb-2">📊 Donation Impact</h5>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="text-green-600">Items Delivered:</span>
+                    <span className="font-bold ml-1">
+                      {(donationsData as any)?.itemDonations?.filter((d: any) => {
+                        const isDelivered = d.status === 'completed' || d.status === 'delivered';
+                        const isOld = new Date().getTime() - new Date(d.createdAt).getTime() > 7 * 24 * 60 * 60 * 1000;
+                        return isDelivered || (isOld && d.status !== 'cancelled');
+                      }).length || 0}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-blue-600">In Processing:</span>
+                    <span className="font-bold ml-1">
+                      {(donationsData as any)?.itemDonations?.filter((d: any) => {
+                        const isDelivered = d.status === 'completed' || d.status === 'delivered';
+                        const isOld = new Date().getTime() - new Date(d.createdAt).getTime() > 7 * 24 * 60 * 60 * 1000;
+                        return !(isDelivered || (isOld && d.status !== 'cancelled'));
+                      }).length || 0}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-purple-600">Success Rate:</span>
+                    <span className="font-bold ml-1">
+                      {(donationsData as any)?.itemDonations?.length > 0 
+                        ? Math.round(((donationsData as any)?.itemDonations?.filter((d: any) => {
+                            const isDelivered = d.status === 'completed' || d.status === 'delivered';
+                            const isOld = new Date().getTime() - new Date(d.createdAt).getTime() > 7 * 24 * 60 * 60 * 1000;
+                            return isDelivered || (isOld && d.status !== 'cancelled');
+                          }).length / (donationsData as any)?.itemDonations?.length) * 100)
+                        : 0}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* All Monetary Donations */}
+            <div>
+              <h4 className="font-semibold mb-3">All Monetary Donations ({(donationsData as any)?.monetaryDonations?.length || 0})</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {(donationsData as any)?.monetaryDonations?.map((donation: any, index: number) => (
+                  <div key={index} className="bg-muted p-3 rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">₹{parseFloat(donation.amount).toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">{donation.purpose}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(donation.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        donation.status === 'completed' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {donation.status}
+                      </span>
+                    </div>
+                  </div>
+                )) || <p className="text-muted-foreground">No monetary donations yet</p>}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* People Helped Details Dialog */}
+      <Dialog open={showPeopleDialog} onOpenChange={setShowPeopleDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-6 h-6 text-secondary" />
+              People Helped Details
+            </DialogTitle>
+            <DialogDescription>
+              Information about verified individuals who received assistance
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-green-100 p-4 rounded-lg">
+                <h4 className="font-semibold text-green-800 mb-2">Verified & Helped</h4>
+                <p className="text-2xl font-bold text-green-800">
+                  {(needyData as any)?.filter((person: any) => person.verified)?.length || 0}
+                </p>
+              </div>
+              <div className="bg-yellow-100 p-4 rounded-lg">
+                <h4 className="font-semibold text-yellow-800 mb-2">Pending Verification</h4>
+                <p className="text-2xl font-bold text-yellow-800">
+                  {(needyData as any)?.filter((person: any) => !person.verified && person.status === 'pending')?.length || 0}
+                </p>
+              </div>
+              <div className="bg-blue-100 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-2">Total Registered</h4>
+                <p className="text-2xl font-bold text-blue-800">
+                  {(needyData as any)?.length || 0}
+                </p>
+              </div>
+            </div>
+            
+            {/* Verified People */}
+            <div>
+              <h4 className="font-semibold mb-3">Verified & Helped People</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {(needyData as any)?.filter((person: any) => person.verified)?.map((person: any, index: number) => (
+                  <div key={index} className="bg-muted p-3 rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{person.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {person.age} years old, {person.city}, {person.state}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Needs: {person.needs?.join(', ')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Registered: {new Date(person.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                        ✅ Verified
+                      </span>
+                    </div>
+                  </div>
+                )) || <p className="text-muted-foreground">No verified people yet</p>}
+              </div>
+            </div>
+
+            {/* Pending Verification */}
+            <div>
+              <h4 className="font-semibold mb-3">Pending Verification</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {(needyData as any)?.filter((person: any) => !person.verified && person.status === 'pending')?.map((person: any, index: number) => (
+                  <div key={index} className="bg-muted p-3 rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{person.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {person.age} years old, {person.city}, {person.state}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Needs: {person.needs?.join(', ')}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Situation: {person.situation?.substring(0, 80)}...
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Registered: {new Date(person.createdAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          Reporter: {person.reporterName} ({person.reporterRelationship})
+                        </p>
+                      </div>
+                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">
+                        ⏳ Pending
+                      </span>
+                    </div>
+                  </div>
+                )) || <p className="text-muted-foreground">No pending verifications</p>}
+              </div>
+            </div>
+
+            {/* All Registered People Summary */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-blue-800 mb-2">📋 Summary</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-blue-600">Total Registered:</span>
+                  <span className="font-bold ml-2">{(needyData as any)?.length || 0}</span>
+                </div>
+                <div>
+                  <span className="text-green-600">Successfully Helped:</span>
+                  <span className="font-bold ml-2">{(needyData as any)?.filter((p: any) => p.verified)?.length || 0}</span>
+                </div>
+                <div>
+                  <span className="text-yellow-600">Awaiting Verification:</span>
+                  <span className="font-bold ml-2">{(needyData as any)?.filter((p: any) => !p.verified && p.status === 'pending')?.length || 0}</span>
+                </div>
+                <div>
+                  <span className="text-blue-600">Success Rate:</span>
+                  <span className="font-bold ml-2">
+                    {(needyData as any)?.length > 0 
+                      ? Math.round(((needyData as any)?.filter((p: any) => p.verified)?.length / (needyData as any)?.length) * 100) 
+                      : 0}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Amount Raised Details Dialog */}
+      <Dialog open={showAmountDialog} onOpenChange={setShowAmountDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="w-6 h-6 text-accent" />
+              Amount Raised Details
+            </DialogTitle>
+            <DialogDescription>
+              Breakdown of monetary contributions received
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-accent mb-2">
+                {formatCurrency((analytics as any)?.totalMonetaryAmount || 0)}
+              </div>
+              <p className="text-muted-foreground">Total Amount Raised</p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-accent/10 p-4 rounded-lg text-center">
+                <p className="text-2xl font-bold text-accent">
+                  {(donationsData as any)?.monetaryDonations?.filter((d: any) => d.status === 'completed')?.length || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">Completed Donations</p>
+              </div>
+              <div className="bg-muted p-4 rounded-lg text-center">
+                <p className="text-2xl font-bold">
+                  {(donationsData as any)?.monetaryDonations?.filter((d: any) => d.status === 'pending')?.length || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">Pending Donations</p>
+              </div>
+            </div>
+
+            {(analytics as any)?.totalMonetaryAmount === 0 && (
+              <div className="text-center py-8">
+                <Heart className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">
+                  No monetary donations yet. Be the first to contribute!
+                </p>
+                <Link href="/donate-money">
+                  <Button className="mt-4">
+                    Donate Money
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

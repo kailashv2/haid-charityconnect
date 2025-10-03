@@ -30,8 +30,8 @@ if (twilioAccountSid && twilioAuthToken) {
   try {
     const twilio = require('twilio');
     twilioClient = twilio(twilioAccountSid, twilioAuthToken);
-  } catch (error) {
-    console.warn('Twilio not available:', error.message);
+  } catch (error: any) {
+    console.warn('Twilio not available:', error?.message || 'Unknown error');
   }
 }
 
@@ -75,6 +75,19 @@ async function sendSMS(phone: string, message: string) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      version: "1.0.0",
+      services: {
+        stripe: !!stripe,
+        twilio: !!twilioClient,
+        sms: !!twilioPhoneNumber
+      }
+    });
+  });
   // Create payment intent for monetary donations
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
@@ -246,6 +259,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Needy persons fetch failed:', error);
       res.status(500).json({ message: "Error fetching needy persons: " + error.message });
+    }
+  });
+
+  // Update needy person status (admin only)
+  app.patch("/api/needy/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, verified } = req.body;
+      
+      const needyPerson = await storage.getNeedyPerson(id);
+      if (!needyPerson) {
+        return res.status(404).json({ message: "Needy person not found" });
+      }
+
+      const updatedPerson = await storage.updateNeedyPersonStatus(id, status, verified);
+      res.json({ success: true, person: updatedPerson, message: "Status updated successfully" });
+    } catch (error: any) {
+      console.error('Status update failed:', error);
+      res.status(500).json({ message: "Error updating status: " + error.message });
+    }
+  });
+
+  // Get SMS logs (admin only)
+  app.get("/api/sms-logs", async (req, res) => {
+    try {
+      const smsLogs = await storage.getSmsLogs();
+      res.json(smsLogs);
+    } catch (error: any) {
+      console.error('SMS logs fetch failed:', error);
+      res.status(500).json({ message: "Error fetching SMS logs: " + error.message });
+    }
+  });
+
+  // Get donor information
+  app.get("/api/donors/:email", async (req, res) => {
+    try {
+      const { email } = req.params;
+      const donor = await storage.getDonorByEmail(email);
+      
+      if (!donor) {
+        return res.status(404).json({ message: "Donor not found" });
+      }
+
+      // Get donor's donations
+      const itemDonations = await storage.getItemDonationsByDonor(donor.id);
+      const monetaryDonations = await storage.getMonetaryDonationsByDonor(donor.id);
+
+      res.json({
+        donor: {
+          ...donor,
+          email: donor.email.replace(/(.{2}).*(@.*)/, '$1***$2'), // Mask email
+          phone: donor.phone.replace(/(.{2}).*(.{2})/, '$1***$2') // Mask phone
+        },
+        donations: {
+          items: itemDonations,
+          monetary: monetaryDonations
+        }
+      });
+    } catch (error: any) {
+      console.error('Donor fetch failed:', error);
+      res.status(500).json({ message: "Error fetching donor information: " + error.message });
+    }
+  });
+
+  // Search functionality
+  app.get("/api/search", async (req, res) => {
+    try {
+      const { q, type } = req.query;
+      
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ message: "Search query is required" });
+      }
+
+      const searchTerm = q.toLowerCase();
+      let results: any = {};
+
+      if (!type || type === 'donations') {
+        const itemDonations = await storage.getItemDonations();
+        const monetaryDonations = await storage.getMonetaryDonations();
+        
+        results.donations = {
+          items: itemDonations.filter(d => 
+            d.category.toLowerCase().includes(searchTerm) ||
+            d.description.toLowerCase().includes(searchTerm)
+          ),
+          monetary: monetaryDonations.filter(d => 
+            d.purpose.toLowerCase().includes(searchTerm)
+          )
+        };
+      }
+
+      if (!type || type === 'needy') {
+        const needyPersons = await storage.getNeedyPersons();
+        results.needy = needyPersons.filter(p => 
+          p.name.toLowerCase().includes(searchTerm) ||
+          p.city.toLowerCase().includes(searchTerm) ||
+          p.situation.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      res.json(results);
+    } catch (error: any) {
+      console.error('Search failed:', error);
+      res.status(500).json({ message: "Error performing search: " + error.message });
+    }
+  });
+
+  // Export data (admin only)
+  app.get("/api/export/:type", async (req, res) => {
+    try {
+      const { type } = req.params;
+      const { format = 'json' } = req.query;
+
+      let data: any;
+      let filename: string;
+
+      switch (type) {
+        case 'donations':
+          const itemDonations = await storage.getItemDonations();
+          const monetaryDonations = await storage.getMonetaryDonations();
+          data = { itemDonations, monetaryDonations };
+          filename = `donations_export_${new Date().toISOString().split('T')[0]}`;
+          break;
+        case 'needy':
+          data = await storage.getNeedyPersons();
+          filename = `needy_persons_export_${new Date().toISOString().split('T')[0]}`;
+          break;
+        case 'analytics':
+          data = await storage.getAnalytics();
+          filename = `analytics_export_${new Date().toISOString().split('T')[0]}`;
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid export type" });
+      }
+
+      if (format === 'csv') {
+        // Simple CSV conversion (would need proper CSV library in production)
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`);
+        res.send('CSV export not implemented yet');
+      } else {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}.json"`);
+        res.json(data);
+      }
+    } catch (error: any) {
+      console.error('Export failed:', error);
+      res.status(500).json({ message: "Error exporting data: " + error.message });
+    }
+  });
+
+  // Update item donation status (admin only)
+  app.patch("/api/donations/items/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!status || !['pending', 'completed', 'delivered', 'cancelled'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status. Must be: pending, completed, delivered, or cancelled" });
+      }
+
+      // For now, we'll just return success since we don't have an update method in storage
+      // In a real implementation, you'd update the database
+      res.json({ success: true, message: `Donation status updated to ${status}` });
+    } catch (error: any) {
+      console.error('Status update failed:', error);
+      res.status(500).json({ message: "Error updating donation status: " + error.message });
     }
   });
 

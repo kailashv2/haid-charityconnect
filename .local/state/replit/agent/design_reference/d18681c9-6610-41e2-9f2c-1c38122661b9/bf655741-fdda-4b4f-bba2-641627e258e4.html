@@ -1,0 +1,1171 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAID - Donation Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    },
+                    colors: {
+                        background: "var(--background)",
+                        foreground: "var(--foreground)",
+                        card: {
+                            DEFAULT: "var(--card)",
+                            foreground: "var(--card-foreground)",
+                        },
+                        popover: {
+                            DEFAULT: "var(--popover)",
+                            foreground: "var(--popover-foreground)",
+                        },
+                        primary: {
+                            DEFAULT: "var(--primary)",
+                            foreground: "var(--primary-foreground)",
+                        },
+                        secondary: {
+                            DEFAULT: "var(--secondary)",
+                            foreground: "var(--secondary-foreground)",
+                        },
+                        muted: {
+                            DEFAULT: "var(--muted)",
+                            foreground: "var(--muted-foreground)",
+                        },
+                        accent: {
+                            DEFAULT: "var(--accent)",
+                            foreground: "var(--accent-foreground)",
+                        },
+                        destructive: {
+                            DEFAULT: "var(--destructive)",
+                            foreground: "var(--destructive-foreground)",
+                        },
+                        border: "var(--border)",
+                        input: "var(--input)",
+                        ring: "var(--ring)",
+                        chart: {
+                            "1": "var(--chart-1)",
+                            "2": "var(--chart-2)",
+                            "3": "var(--chart-3)",
+                            "4": "var(--chart-4)",
+                            "5": "var(--chart-5)",
+                        }
+                    },
+                    fontFamily: {
+                        sans: ["var(--font-sans)"],
+                        serif: ["var(--font-serif)"],
+                        mono: ["var(--font-mono)"],
+                    }
+                },
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/heroicons/2.0.18/24/outline/heroicons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --radius: 0.75rem;
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(214 84% 56%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(160 84% 39%);
+            --secondary-foreground: hsl(0 0% 100%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(22 82% 39%);
+            --accent-foreground: hsl(0 0% 100%);
+            --destructive: hsl(0 84.2% 60.2%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(214 84% 56%);
+            --chart-1: hsl(214 84% 56%);
+            --chart-2: hsl(160 84% 39%);
+            --chart-3: hsl(22 82% 39%);
+            --chart-4: hsl(280 65% 60%);
+            --chart-5: hsl(45 93% 47%);
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+        }
+        
+        .page-section {
+            display: none;
+        }
+        
+        .page-section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground">
+    <!-- @COMPONENT: NavigationHeader -->
+    <nav class="bg-card border-b border-border shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="text-2xl font-bold text-primary">HAID</div>
+                    <span class="text-sm text-muted-foreground">Helping Aid for Indian Development</span>
+                </div>
+                
+                <div class="hidden md:flex space-x-6">
+                    <button onclick="showPage('home')" class="nav-link text-foreground hover:text-primary font-medium">Home</button>
+                    <button onclick="showPage('donate-items')" class="nav-link text-foreground hover:text-primary font-medium">Donate Items</button>
+                    <button onclick="showPage('donate-money')" class="nav-link text-foreground hover:text-primary font-medium">Donate Money</button>
+                    <button onclick="showPage('register-needy')" class="nav-link text-foreground hover:text-primary font-medium">Register Needy</button>
+                    <button onclick="showPage('analytics')" class="nav-link text-foreground hover:text-primary font-medium">Analytics</button>
+                </div>
+                
+                <button class="md:hidden bg-primary text-primary-foreground p-2 rounded-md" onclick="toggleMobileMenu()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="md:hidden bg-card border-t border-border px-4 py-2 space-y-2 hidden">
+            <button onclick="showPage('home')" class="block w-full text-left py-2 text-foreground hover:text-primary">Home</button>
+            <button onclick="showPage('donate-items')" class="block w-full text-left py-2 text-foreground hover:text-primary">Donate Items</button>
+            <button onclick="showPage('donate-money')" class="block w-full text-left py-2 text-foreground hover:text-primary">Donate Money</button>
+            <button onclick="showPage('register-needy')" class="block w-full text-left py-2 text-foreground hover:text-primary">Register Needy</button>
+            <button onclick="showPage('analytics')" class="block w-full text-left py-2 text-foreground hover:text-primary">Analytics</button>
+        </div>
+    </nav>
+    <!-- @END_COMPONENT: NavigationHeader -->
+
+    <!-- @COMPONENT: HomePage -->
+    <div id="home" class="page-section active">
+        <!-- Hero Section -->
+        <!-- A diverse group of people helping each other in a community setting -->
+        <section class="relative bg-gradient-to-br from-primary via-primary to-secondary text-primary-foreground py-20" style="background-image: linear-gradient(rgba(30, 64, 175, 0.8), rgba(5, 150, 105, 0.8)), url('https://images.unsplash.com/photo-1559027615-cd4628902d4a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080'); background-size: cover; background-position: center;">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl md:text-6xl font-bold mb-6">Make a Difference Today</h1>
+                <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">Join HAID in creating positive change. Donate items or money to help those in need across India.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button onclick="showPage('donate-items')" class="bg-accent text-accent-foreground hover:bg-accent/90 px-8 py-3 rounded-lg font-semibold text-lg shadow-lg transition-all">
+                        Donate Items
+                    </button>
+                    <button onclick="showPage('donate-money')" class="bg-secondary text-secondary-foreground hover:bg-secondary/90 px-8 py-3 rounded-lg font-semibold text-lg shadow-lg transition-all">
+                        Donate Money
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Impact Stats -->
+        <section class="py-16 bg-card">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                    <div class="bg-muted p-8 rounded-xl">
+                        <div class="text-4xl font-bold text-primary mb-2" data-bind="stats.totalDonations">2,547</div>
+                        <div class="text-muted-foreground font-medium">Total Donations</div>
+                    </div>
+                    <div class="bg-muted p-8 rounded-xl">
+                        <div class="text-4xl font-bold text-secondary mb-2" data-bind="stats.peopleHelped">1,203</div>
+                        <div class="text-muted-foreground font-medium">People Helped</div>
+                    </div>
+                    <div class="bg-muted p-8 rounded-xl">
+                        <div class="text-4xl font-bold text-accent mb-2" data-bind="stats.totalAmount">₹4.2L</div>
+                        <div class="text-muted-foreground font-medium">Amount Raised</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="py-16 bg-background">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <h2 class="text-3xl font-bold text-center mb-12">How It Works</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-3">1. Choose Your Donation</h3>
+                        <p class="text-muted-foreground">Select to donate physical items or contribute money to help those in need.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-secondary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-3">2. Fill Details</h3>
+                        <p class="text-muted-foreground">Provide necessary information and location for item pickup or payment processing.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-accent/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-3">3. Make Impact</h3>
+                        <p class="text-muted-foreground">Your donation reaches those who need it most, creating positive change in their lives.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <!-- @END_COMPONENT: HomePage -->
+
+    <!-- @COMPONENT: DonateItemsPage -->
+    <div id="donate-items" class="page-section">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="bg-card rounded-xl shadow-lg p-8">
+                <h1 class="text-3xl font-bold mb-2">Donate Items</h1>
+                <p class="text-muted-foreground mb-8">Share your unused items to help those in need. Our team will coordinate pickup.</p>
+                
+                <form id="donate-items-form" class="space-y-6">
+                    <!-- Donor Information -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-foreground">Full Name *</label>
+                            <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.name" placeholder="Enter your full name">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-foreground">Phone Number *</label>
+                            <input type="tel" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.phone" placeholder="+91 XXXXX XXXXX">
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-foreground">Email Address *</label>
+                        <input type="email" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.email" placeholder="your.email@example.com">
+                    </div>
+
+                    <!-- Item Details -->
+                    <div class="border-t border-border pt-6">
+                        <h3 class="text-lg font-semibold mb-4">Item Details</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Item Category *</label>
+                                <select required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="item.category">
+                                    <option value="">Select category</option>
+                                    <option value="clothes">Clothes</option>
+                                    <option value="books">Books</option>
+                                    <option value="medicines">Medicines</option>
+                                    <option value="food">Food Items</option>
+                                    <option value="toys">Toys</option>
+                                    <option value="electronics">Electronics</option>
+                                    <option value="furniture">Furniture</option>
+                                    <option value="others">Others</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Condition *</label>
+                                <select required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="item.condition">
+                                    <option value="">Select condition</option>
+                                    <option value="new">New</option>
+                                    <option value="excellent">Excellent</option>
+                                    <option value="good">Good</option>
+                                    <option value="fair">Fair</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label class="text-sm font-medium text-foreground">Item Description *</label>
+                            <textarea required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" rows="3" data-bind="item.description" placeholder="Describe the items you want to donate..."></textarea>
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label class="text-sm font-medium text-foreground">Estimated Quantity</label>
+                            <input type="text" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="item.quantity" placeholder="e.g., 5 shirts, 10 books, 1 bag of rice">
+                        </div>
+                    </div>
+
+                    <!-- Location Details -->
+                    <div class="border-t border-border pt-6">
+                        <h3 class="text-lg font-semibold mb-4">Pickup Location</h3>
+                        
+                        <div class="bg-muted p-4 rounded-lg mb-4">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span class="text-sm font-medium">Allow location access for easier pickup coordination</span>
+                            </div>
+                            <button type="button" onclick="getLocation()" class="mt-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover:bg-primary/90">
+                                Get Current Location
+                            </button>
+                            <div id="location-status" class="mt-2 text-sm text-muted-foreground"></div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Full Address *</label>
+                                <textarea required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" rows="3" data-bind="donor.address" placeholder="Enter complete pickup address..."></textarea>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-foreground">City *</label>
+                                    <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.city" placeholder="City">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-foreground">State *</label>
+                                    <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.state" placeholder="State">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-foreground">PIN Code *</label>
+                                    <input type="text" required pattern="[0-9]{6}" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.pincode" placeholder="000000">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preferred Pickup Time -->
+                    <div class="border-t border-border pt-6">
+                        <h3 class="text-lg font-semibold mb-4">Pickup Preferences</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Preferred Date</label>
+                                <input type="date" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="pickup.date">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Preferred Time Slot</label>
+                                <select class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="pickup.timeSlot">
+                                    <option value="">Any time</option>
+                                    <option value="morning">Morning (9 AM - 12 PM)</option>
+                                    <option value="afternoon">Afternoon (12 PM - 4 PM)</option>
+                                    <option value="evening">Evening (4 PM - 7 PM)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label class="text-sm font-medium text-foreground">Special Instructions</label>
+                            <textarea class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" rows="2" data-bind="pickup.instructions" placeholder="Any special instructions for our pickup team..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                        <button type="submit" class="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all">
+                            Submit Donation
+                        </button>
+                        <button type="button" onclick="showPage('home')" class="bg-muted text-muted-foreground px-8 py-3 rounded-lg font-semibold hover:bg-muted/80 transition-all">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: DonateItemsPage -->
+
+    <!-- @COMPONENT: DonateMoneyPage -->
+    <div id="donate-money" class="page-section">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="bg-card rounded-xl shadow-lg p-8">
+                <h1 class="text-3xl font-bold mb-2">Donate Money</h1>
+                <p class="text-muted-foreground mb-8">Your monetary contribution helps us purchase essential items for those in need.</p>
+                
+                <!-- Donation Amount Selection -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold mb-4">Select Amount</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <button type="button" onclick="selectAmount(500)" class="amount-btn bg-muted hover:bg-primary hover:text-primary-foreground p-4 rounded-lg text-center font-semibold transition-all">
+                            ₹500
+                        </button>
+                        <button type="button" onclick="selectAmount(1000)" class="amount-btn bg-muted hover:bg-primary hover:text-primary-foreground p-4 rounded-lg text-center font-semibold transition-all">
+                            ₹1,000
+                        </button>
+                        <button type="button" onclick="selectAmount(2500)" class="amount-btn bg-muted hover:bg-primary hover:text-primary-foreground p-4 rounded-lg text-center font-semibold transition-all">
+                            ₹2,500
+                        </button>
+                        <button type="button" onclick="selectAmount(5000)" class="amount-btn bg-muted hover:bg-primary hover:text-primary-foreground p-4 rounded-lg text-center font-semibold transition-all">
+                            ₹5,000
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-foreground">Custom Amount</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">₹</span>
+                            <input type="number" id="custom-amount" min="1" class="w-full pl-8 pr-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" placeholder="Enter amount" data-bind="donation.amount">
+                        </div>
+                    </div>
+                </div>
+
+                <form id="donate-money-form" class="space-y-6">
+                    <!-- Donor Information -->
+                    <div class="border-t border-border pt-6">
+                        <h3 class="text-lg font-semibold mb-4">Donor Information</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Full Name *</label>
+                                <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.name" placeholder="Enter your full name">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Phone Number *</label>
+                                <input type="tel" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.phone" placeholder="+91 XXXXX XXXXX">
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label class="text-sm font-medium text-foreground">Email Address *</label>
+                            <input type="email" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.email" placeholder="your.email@example.com">
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label class="text-sm font-medium text-foreground">PAN Number (for tax receipt)</label>
+                            <input type="text" pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="donor.pan" placeholder="AAAAA0000A" style="text-transform: uppercase;">
+                            <p class="text-xs text-muted-foreground">Optional: Required for tax deduction receipt under Section 80G</p>
+                        </div>
+                    </div>
+
+                    <!-- Donation Purpose -->
+                    <div class="border-t border-border pt-6">
+                        <h3 class="text-lg font-semibold mb-4">Donation Purpose</h3>
+                        
+                        <div class="space-y-3">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="purpose" value="general" class="text-primary focus:ring-ring" checked data-bind="donation.purpose">
+                                <span class="text-foreground">General Fund - Use where most needed</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="purpose" value="food" class="text-primary focus:ring-ring" data-bind="donation.purpose">
+                                <span class="text-foreground">Food & Nutrition</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="purpose" value="education" class="text-primary focus:ring-ring" data-bind="donation.purpose">
+                                <span class="text-foreground">Education & Books</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="purpose" value="healthcare" class="text-primary focus:ring-ring" data-bind="donation.purpose">
+                                <span class="text-foreground">Healthcare & Medicines</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="purpose" value="shelter" class="text-primary focus:ring-ring" data-bind="donation.purpose">
+                                <span class="text-foreground">Shelter & Clothing</span>
+                            </label>
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label class="text-sm font-medium text-foreground">Message (Optional)</label>
+                            <textarea class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" rows="3" data-bind="donation.message" placeholder="Leave a message of hope..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Payment Information -->
+                    <div class="border-t border-border pt-6">
+                        <h3 class="text-lg font-semibold mb-4">Payment Details</h3>
+                        
+                        <div class="bg-muted p-4 rounded-lg mb-6">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                </svg>
+                                <span class="font-medium text-foreground">Secure Payment via Stripe</span>
+                            </div>
+                            <p class="text-sm text-muted-foreground">Your payment information is encrypted and secure. We accept all major credit/debit cards.</p>
+                        </div>
+                        
+                        <!-- Payment form fields -->
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Card Number *</label>
+                                <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" placeholder="1234 5678 9012 3456" data-bind="payment.cardNumber">
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-foreground">Expiry Date *</label>
+                                    <input type="text" required placeholder="MM/YY" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="payment.expiry">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-foreground">CVV *</label>
+                                    <input type="text" required placeholder="123" maxlength="4" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="payment.cvv">
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Cardholder Name *</label>
+                                <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" placeholder="Name as on card" data-bind="payment.cardholderName">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Donation Summary -->
+                    <div class="border border-border rounded-lg p-6 bg-muted/50">
+                        <h3 class="text-lg font-semibold mb-4">Donation Summary</h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span>Donation Amount:</span>
+                                <span class="font-semibold" id="amount-display">₹0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Processing Fee:</span>
+                                <span>₹0</span>
+                            </div>
+                            <div class="border-t border-border pt-2 mt-2">
+                                <div class="flex justify-between font-semibold text-lg">
+                                    <span>Total Amount:</span>
+                                    <span id="total-display">₹0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                        <button type="submit" class="bg-secondary text-secondary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-secondary/90 transition-all">
+                            Donate Securely
+                        </button>
+                        <button type="button" onclick="showPage('home')" class="bg-muted text-muted-foreground px-8 py-3 rounded-lg font-semibold hover:bg-muted/80 transition-all">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: DonateMoneyPage -->
+
+    <!-- @COMPONENT: RegisterNeedyPage -->
+    <div id="register-needy" class="page-section">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="bg-card rounded-xl shadow-lg p-8">
+                <h1 class="text-3xl font-bold mb-2">Register Needy Person</h1>
+                <p class="text-muted-foreground mb-8">Help us identify and reach those who need assistance in your community.</p>
+                
+                <form id="register-needy-form" class="space-y-6">
+                    <!-- Personal Information -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">Personal Information</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Full Name *</label>
+                                <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="needy.name" placeholder="Enter full name">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Age *</label>
+                                <input type="number" required min="0" max="120" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="needy.age" placeholder="Age">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Gender *</label>
+                                <select required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="needy.gender">
+                                    <option value="">Select gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Phone Number</label>
+                                <input type="tel" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="needy.phone" placeholder="+91 XXXXX XXXXX">
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label class="text-sm font-medium text-foreground">Family Size</label>
+                            <input type="number" min="1" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="needy.familySize" placeholder="Number of family members">
+                        </div>
+                    </div>
+
+                    <!-- Location Information -->
+                    <div class="border-t border-border pt-6">
+                        <h3 class="text-lg font-semibold mb-4">Location Information</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Current Address *</label>
+                                <textarea required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" rows="3" data-bind="needy.address" placeholder="Enter complete address..."></textarea>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-foreground">City *</label>
+                                    <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="needy.city" placeholder="City">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-foreground">State *</label>
+                                    <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="needy.state" placeholder="State">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-foreground">PIN Code *</label>
+                                    <input type="text" required pattern="[0-9]{6}" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="needy.pincode" placeholder="000000">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Needs Assessment -->
+                    <div class="border-t border-border pt-6">
+                        <h3 class="text-lg font-semibold mb-4">Needs Assessment</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Primary Needs (Select all that apply)</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" value="food" class="text-primary focus:ring-ring" data-bind="needy.needs">
+                                        <span class="text-foreground">Food & Nutrition</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" value="clothing" class="text-primary focus:ring-ring" data-bind="needy.needs">
+                                        <span class="text-foreground">Clothing</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" value="shelter" class="text-primary focus:ring-ring" data-bind="needy.needs">
+                                        <span class="text-foreground">Shelter</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" value="healthcare" class="text-primary focus:ring-ring" data-bind="needy.needs">
+                                        <span class="text-foreground">Healthcare</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" value="education" class="text-primary focus:ring-ring" data-bind="needy.needs">
+                                        <span class="text-foreground">Education</span>
+                                    </label>
+                                    <label class="flex items-center space-x-3 cursor-pointer">
+                                        <input type="checkbox" value="employment" class="text-primary focus:ring-ring" data-bind="needy.needs">
+                                        <span class="text-foreground">Employment</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Current Situation *</label>
+                                <textarea required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" rows="4" data-bind="needy.situation" placeholder="Describe the current situation and specific needs..."></textarea>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Monthly Income (if any)</label>
+                                <input type="number" min="0" class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="needy.income" placeholder="Monthly income in ₹">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reporter Information -->
+                    <div class="border-t border-border pt-6">
+                        <h3 class="text-lg font-semibold mb-4">Reporter Information</h3>
+                        <p class="text-sm text-muted-foreground mb-4">Information about the person submitting this registration</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Your Name *</label>
+                                <input type="text" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="reporter.name" placeholder="Your full name">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-foreground">Your Phone Number *</label>
+                                <input type="tel" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="reporter.phone" placeholder="+91 XXXXX XXXXX">
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label class="text-sm font-medium text-foreground">Your Email *</label>
+                            <input type="email" required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="reporter.email" placeholder="your.email@example.com">
+                        </div>
+                        
+                        <div class="space-y-2 mt-4">
+                            <label class="text-sm font-medium text-foreground">Relationship to Needy Person *</label>
+                            <select required class="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background" data-bind="reporter.relationship">
+                                <option value="">Select relationship</option>
+                                <option value="self">Self</option>
+                                <option value="family">Family Member</option>
+                                <option value="friend">Friend</option>
+                                <option value="neighbor">Neighbor</option>
+                                <option value="social_worker">Social Worker</option>
+                                <option value="ngo">NGO Representative</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Verification -->
+                    <div class="border-t border-border pt-6">
+                        <div class="bg-muted p-4 rounded-lg">
+                            <h4 class="font-semibold mb-2">Verification Note</h4>
+                            <p class="text-sm text-muted-foreground mb-3">Our team will verify the information provided before adding the person to our assistance program. This may include a field visit or phone verification.</p>
+                            <label class="flex items-start space-x-3 cursor-pointer">
+                                <input type="checkbox" required class="mt-1 text-primary focus:ring-ring" data-bind="verification.consent">
+                                <span class="text-sm text-foreground">I confirm that the information provided is accurate to the best of my knowledge and I consent to verification by the HAID team.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6">
+                        <button type="submit" class="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-all">
+                            Submit Registration
+                        </button>
+                        <button type="button" onclick="showPage('home')" class="bg-muted text-muted-foreground px-8 py-3 rounded-lg font-semibold hover:bg-muted/80 transition-all">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: RegisterNeedyPage -->
+
+    <!-- @COMPONENT: AnalyticsPage -->
+    <div id="analytics" class="page-section">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold mb-2">Analytics Dashboard</h1>
+                <p class="text-muted-foreground">Real-time insights into our donation and assistance programs</p>
+            </div>
+
+            <!-- Key Metrics -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Total Donations</p>
+                            <p class="text-3xl font-bold text-primary" data-bind="analytics.totalDonations">2,547</p>
+                        </div>
+                        <div class="bg-primary/10 p-3 rounded-full">
+                            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-sm text-secondary">↗ 23% from last month</span>
+                    </div>
+                </div>
+
+                <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-muted-foreground">People Helped</p>
+                            <p class="text-3xl font-bold text-secondary" data-bind="analytics.peopleHelped">1,203</p>
+                        </div>
+                        <div class="bg-secondary/10 p-3 rounded-full">
+                            <svg class="w-6 h-6 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-sm text-secondary">↗ 18% from last month</span>
+                    </div>
+                </div>
+
+                <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Amount Raised</p>
+                            <p class="text-3xl font-bold text-accent" data-bind="analytics.totalAmount">₹4.2L</p>
+                        </div>
+                        <div class="bg-accent/10 p-3 rounded-full">
+                            <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-sm text-secondary">↗ 31% from last month</span>
+                    </div>
+                </div>
+
+                <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-muted-foreground">Active Cases</p>
+                            <p class="text-3xl font-bold text-primary" data-bind="analytics.activeCases">456</p>
+                        </div>
+                        <div class="bg-primary/10 p-3 rounded-full">
+                            <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-sm text-secondary">↗ 12% from last month</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Donation Types Chart -->
+                <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                    <h3 class="text-lg font-semibold mb-4">Donation Types Distribution</h3>
+                    <div class="relative h-64">
+                        <canvas id="donationTypesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Monthly Donations Trend -->
+                <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                    <h3 class="text-lg font-semibold mb-4">Monthly Donations Trend</h3>
+                    <div class="relative h-64">
+                        <canvas id="monthlyTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Need Categories and Regional Distribution -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Need Categories -->
+                <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                    <h3 class="text-lg font-semibold mb-4">Top Need Categories</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-4 h-4 bg-chart-1 rounded"></div>
+                                <span class="font-medium">Food & Nutrition</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-semibold">45%</span>
+                                <div class="w-24 bg-muted rounded-full h-2 mt-1">
+                                    <div class="bg-chart-1 h-2 rounded-full" style="width: 45%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-4 h-4 bg-chart-2 rounded"></div>
+                                <span class="font-medium">Clothing</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-semibold">28%</span>
+                                <div class="w-24 bg-muted rounded-full h-2 mt-1">
+                                    <div class="bg-chart-2 h-2 rounded-full" style="width: 28%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-4 h-4 bg-chart-3 rounded"></div>
+                                <span class="font-medium">Healthcare</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-semibold">18%</span>
+                                <div class="w-24 bg-muted rounded-full h-2 mt-1">
+                                    <div class="bg-chart-3 h-2 rounded-full" style="width: 18%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-4 h-4 bg-chart-4 rounded"></div>
+                                <span class="font-medium">Education</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-semibold">9%</span>
+                                <div class="w-24 bg-muted rounded-full h-2 mt-1">
+                                    <div class="bg-chart-4 h-2 rounded-full" style="width: 9%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Regional Distribution -->
+                <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                    <h3 class="text-lg font-semibold mb-4">Regional Distribution</h3>
+                    <div class="relative h-64">
+                        <canvas id="regionalChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activities -->
+            <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                <h3 class="text-lg font-semibold mb-4">Recent Activities</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg" data-mock="true">
+                        <div class="bg-secondary text-secondary-foreground w-10 h-10 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">New monetary donation received</p>
+                            <p class="text-sm text-muted-foreground">₹5,000 donated by Rajesh Kumar for general fund</p>
+                        </div>
+                        <span class="text-sm text-muted-foreground">2 mins ago</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg" data-mock="true">
+                        <div class="bg-primary text-primary-foreground w-10 h-10 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">Items donation scheduled for pickup</p>
+                            <p class="text-sm text-muted-foreground">Clothes and books from Priya Sharma in Mumbai</p>
+                        </div>
+                        <span class="text-sm text-muted-foreground">15 mins ago</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg" data-mock="true">
+                        <div class="bg-accent text-accent-foreground w-10 h-10 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium">New needy person registered</p>
+                            <p class="text-sm text-muted-foreground">Family of 4 in Delhi needs food assistance</p>
+                        </div>
+                        <span class="text-sm text-muted-foreground">32 mins ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: AnalyticsPage -->
+
+    <!-- @COMPONENT: SuccessModal -->
+    <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-card p-8 rounded-xl shadow-2xl max-w-md w-full mx-4">
+            <div class="text-center">
+                <div class="bg-secondary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold mb-2" id="modal-title">Success!</h3>
+                <p class="text-muted-foreground mb-6" id="modal-message">Your submission has been processed successfully.</p>
+                <div class="bg-muted p-4 rounded-lg mb-6">
+                    <p class="text-sm font-medium mb-2">SMS Notification Sent</p>
+                    <p class="text-xs text-muted-foreground">A thank you message has been sent to your phone number.</p>
+                </div>
+                <button onclick="closeModal()" class="bg-primary text-primary-foreground px-6 py-2 rounded-lg font-semibold hover:bg-primary/90 transition-all">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: SuccessModal -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        
+        // Navigation functionality
+        function showPage(pageId) {
+            // Hide all pages
+            const pages = document.querySelectorAll('.page-section');
+            pages.forEach(page => page.classList.remove('active'));
+            
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Update nav active state (simplified for demo)
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => link.classList.remove('text-primary'));
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Location functionality
+        function getLocation() {
+            const statusEl = document.getElementById('location-status');
+            
+            if (navigator.geolocation) {
+                statusEl.textContent = 'Getting location...';
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        statusEl.textContent = `Location found: ${position.coords.latitude}, ${position.coords.longitude}`;
+                        statusEl.classList.add('text-secondary');
+                        // TODO: Reverse geocoding to get address
+                    },
+                    function(error) {
+                        statusEl.textContent = 'Unable to get location. Please enter address manually.';
+                        statusEl.classList.add('text-destructive');
+                    }
+                );
+            } else {
+                statusEl.textContent = 'Geolocation is not supported by this browser.';
+                statusEl.classList.add('text-destructive');
+            }
+        }
+
+        // Amount selection for donations
+        function selectAmount(amount) {
+            document.getElementById('custom-amount').value = amount;
+            updateAmountDisplay(amount);
+            
+            // Update button states
+            const buttons = document.querySelectorAll('.amount-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-primary', 'text-primary-foreground');
+                btn.classList.add('bg-muted');
+            });
+            
+            event.target.classList.remove('bg-muted');
+            event.target.classList.add('bg-primary', 'text-primary-foreground');
+        }
+
+        function updateAmountDisplay(amount) {
+            document.getElementById('amount-display').textContent = `₹${amount.toLocaleString()}`;
+            document.getElementById('total-display').textContent = `₹${amount.toLocaleString()}`;
+        }
+
+        // Form submission handlers
+        (function() {
+            // Donate Items Form
+            const donateItemsForm = document.getElementById('donate-items-form');
+            if (donateItemsForm) {
+                donateItemsForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    // TODO: Implement API call to submit item donation
+                    showSuccessModal('Item Donation Submitted!', 'Thank you for your generous donation. Our team will contact you shortly to arrange pickup.');
+                });
+            }
+
+            // Donate Money Form
+            const donateMoneyForm = document.getElementById('donate-money-form');
+            if (donateMoneyForm) {
+                donateMoneyForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    // TODO: Implement Stripe payment processing
+                    showSuccessModal('Payment Successful!', 'Your monetary donation has been processed successfully. Your contribution will make a real difference.');
+                });
+            }
+
+            // Register Needy Form
+            const registerNeedyForm = document.getElementById('register-needy-form');
+            if (registerNeedyForm) {
+                registerNeedyForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    // TODO: Implement API call to register needy person
+                    showSuccessModal('Registration Submitted!', 'The registration has been submitted for verification. Our team will review and contact you soon.');
+                });
+            }
+
+            // Custom amount input handler
+            const customAmountInput = document.getElementById('custom-amount');
+            if (customAmountInput) {
+                customAmountInput.addEventListener('input', function(e) {
+                    const amount = parseInt(e.target.value) || 0;
+                    updateAmountDisplay(amount);
+                    
+                    // Reset amount button states
+                    const buttons = document.querySelectorAll('.amount-btn');
+                    buttons.forEach(btn => {
+                        btn.classList.remove('bg-primary', 'text-primary-foreground');
+                        btn.classList.add('bg-muted');
+                    });
+                });
+            }
+        })();
+
+        // Modal functionality
+        function showSuccessModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('success-modal').classList.add('hidden');
+            showPage('home');
+        }
+
+        // Charts initialization
+        (function() {
+            // Initialize charts when analytics page is shown
+            const ctx1 = document.getElementById('donationTypesChart');
+            const ctx2 = document.getElementById('monthlyTrendChart');
+            const ctx3 = document.getElementById('regionalChart');
+
+            if (ctx1) {
+                new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Money Donations', 'Item Donations'],
+                        datasets: [{
+                            data: [65, 35],
+                            backgroundColor: ['hsl(214 84% 56%)', 'hsl(160 84% 39%)'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (ctx2) {
+                new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'Donations',
+                            data: [120, 190, 300, 500, 400, 600],
+                            borderColor: 'hsl(214 84% 56%)',
+                            backgroundColor: 'hsla(214 84% 56% / 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (ctx3) {
+                new Chart(ctx3, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Kolkata'],
+                        datasets: [{
+                            label: 'People Helped',
+                            data: [320, 280, 210, 180, 160],
+                            backgroundColor: 'hsl(160 84% 39%)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
