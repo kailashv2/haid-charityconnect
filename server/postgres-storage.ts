@@ -176,8 +176,8 @@ export class PostgresStorage implements IStorage {
       .reduce((sum, d) => sum + parseFloat(d.amount), 0);
     
     // Calculate people helped and active cases
-    const peopleHelped = needyPersonsArray.filter(p => p.verified).length;
-    const activeCases = needyPersonsArray.filter(p => p.status === "pending").length;
+    const peopleHelped = needyPersonsArray.filter(p => p.status === 'helped').length;
+    const activeCases = needyPersonsArray.filter(p => !p.verified).length;
 
     // Monthly trend - calculated from real data (last 6 months)
     const monthlyTrend = [];

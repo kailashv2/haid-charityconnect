@@ -231,7 +231,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get analytics data
   app.get("/api/analytics", async (req, res) => {
     try {
+      // Prevent caching to ensure fresh data
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       const analytics = await storage.getAnalytics();
+      console.log('📊 Analytics data:', { 
+        peopleHelped: analytics.peopleHelped, 
+        activeCases: analytics.activeCases 
+      });
       res.json(analytics);
     } catch (error: any) {
       console.error('Analytics fetch failed:', error);
@@ -255,6 +264,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/needy", async (req, res) => {
     try {
       const needyPersons = await storage.getNeedyPersons();
+      
+      // Debug: Log current data to see what we have
+      console.log('🔍 Current needy persons data:');
+      needyPersons.forEach((p: any) => {
+        console.log(`  - ${p.name}: verified=${p.verified}, status=${p.status}`);
+      });
+      
       res.json(needyPersons);
     } catch (error: any) {
       console.error('Needy persons fetch failed:', error);
@@ -278,6 +294,214 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Status update failed:', error);
       res.status(500).json({ message: "Error updating status: " + error.message });
+    }
+  });
+
+
+  // Verify needy person (admin only)
+  app.post("/api/needy/:id/verify", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`🔄 Verifying person with ID: ${id}`);
+      
+      const needyPerson = await storage.getNeedyPerson(id);
+      if (!needyPerson) {
+        console.log(`❌ Person not found with ID: ${id}`);
+        return res.status(404).json({ message: "Needy person not found" });
+      }
+
+      console.log(`👤 Found person: ${needyPerson.name}`);
+      
+      const updatedPerson = await storage.updateNeedyPersonStatus(id, "verified", true);
+      console.log(`✅ Status updated in database`);
+      
+      // Send SMS notification to reporter about verification (don't fail if SMS fails)
+      try {
+        if (needyPerson.reporterPhone) {
+          const smsMessage = `Good news! ${needyPerson.name}'s registration has been verified by HAID. Our team will contact you soon for assistance coordination. - Team HAID`;
+          await sendSMS(needyPerson.reporterPhone, smsMessage);
+          console.log(`📱 SMS sent successfully to ${needyPerson.reporterPhone}`);
+        } else {
+          console.log(`⚠️ No reporter phone number found, skipping SMS`);
+        }
+      } catch (smsError) {
+        console.error('SMS sending failed (but verification succeeded):', smsError);
+        // Don't fail the entire operation if SMS fails
+      }
+      
+      res.json({ success: true, person: updatedPerson, message: "Person verified successfully" });
+    } catch (error: any) {
+      console.error('Verification failed:', error);
+      res.status(500).json({ message: "Error verifying person: " + error.message });
+    }
+  });
+
+  // Mark needy person as helped (admin only)
+  app.post("/api/needy/:id/helped", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`🔄 Marking person as helped with ID: ${id}`);
+      
+      const needyPerson = await storage.getNeedyPerson(id);
+      if (!needyPerson) {
+        console.log(`❌ Person not found with ID: ${id}`);
+        return res.status(404).json({ message: "Needy person not found" });
+      }
+
+      console.log(`👤 Found person: ${needyPerson.name}`);
+      
+      const updatedPerson = await storage.updateNeedyPersonStatus(id, "helped", true);
+      console.log(`✅ Status updated to helped in database`);
+      console.log(`🔍 Updated person data:`, { 
+        id: updatedPerson?.id, 
+        name: updatedPerson?.name, 
+        status: updatedPerson?.status, 
+        verified: updatedPerson?.verified 
+      });
+      
+      // Send SMS notification to reporter about help provided
+      try {
+        if (needyPerson.reporterPhone) {
+          const smsMessage = `Great news! ${needyPerson.name} has received assistance through HAID. Thank you for reporting and helping make a difference! - Team HAID`;
+          await sendSMS(needyPerson.reporterPhone, smsMessage);
+          console.log(`📱 SMS sent successfully to ${needyPerson.reporterPhone}`);
+        } else {
+          console.log(`⚠️ No reporter phone number found, skipping SMS`);
+        }
+      } catch (smsError) {
+        console.error('SMS sending failed (but helped status succeeded):', smsError);
+        // Don't fail the entire operation if SMS fails
+      }
+      
+      res.json({ success: true, person: updatedPerson, message: "Person marked as helped successfully" });
+    } catch (error: any) {
+      console.error('Mark as helped failed:', error);
+      res.status(500).json({ message: "Error marking person as helped: " + error.message });
+    }
+  });
+
+  // Remove person from helped status (admin only)
+  app.post("/api/needy/:id/unhelp", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`🔄 Removing person from helped status with ID: ${id}`);
+      
+      const needyPerson = await storage.getNeedyPerson(id);
+      if (!needyPerson) {
+        console.log(`❌ Person not found with ID: ${id}`);
+        return res.status(404).json({ message: "Needy person not found" });
+      }
+
+      console.log(`👤 Found person: ${needyPerson.name}`);
+      
+      // Set back to verified status (not helped anymore)
+      const updatedPerson = await storage.updateNeedyPersonStatus(id, "verified", true);
+      console.log(`✅ Status updated back to verified in database`);
+      
+      res.json({ success: true, person: updatedPerson, message: "Person removed from helped status successfully" });
+    } catch (error: any) {
+      console.error('Remove from helped failed:', error);
+      res.status(500).json({ message: "Error removing person from helped status: " + error.message });
+    }
+  });
+
+  // Remove person from verified status (admin only)
+  app.post("/api/needy/:id/unverify", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`🔄 Removing person from verified status with ID: ${id}`);
+      
+      const needyPerson = await storage.getNeedyPerson(id);
+      if (!needyPerson) {
+        console.log(`❌ Person not found with ID: ${id}`);
+        return res.status(404).json({ message: "Needy person not found" });
+      }
+
+      console.log(`👤 Found person: ${needyPerson.name}`);
+      
+      // Set back to pending status
+      const updatedPerson = await storage.updateNeedyPersonStatus(id, "pending", false);
+      console.log(`✅ Status updated back to pending in database`);
+      
+      res.json({ success: true, person: updatedPerson, message: "Person removed from verified status successfully" });
+    } catch (error: any) {
+      console.error('Remove from verified failed:', error);
+      res.status(500).json({ message: "Error removing person from verified status: " + error.message });
+    }
+  });
+
+  // Remove person from rejected status (admin only)
+  app.post("/api/needy/:id/unreject", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`🔄 Removing person from rejected status with ID: ${id}`);
+      
+      const needyPerson = await storage.getNeedyPerson(id);
+      if (!needyPerson) {
+        console.log(`❌ Person not found with ID: ${id}`);
+        return res.status(404).json({ message: "Needy person not found" });
+      }
+
+      console.log(`👤 Found person: ${needyPerson.name}`);
+      console.log(`🔍 Current person data:`, { 
+        id: needyPerson.id, 
+        name: needyPerson.name, 
+        status: needyPerson.status, 
+        verified: needyPerson.verified 
+      });
+      
+      // Set back to pending status
+      const updatedPerson = await storage.updateNeedyPersonStatus(id, "pending", false);
+      console.log(`✅ Status updated back to pending in database`);
+      console.log(`🔍 Updated person data:`, { 
+        id: updatedPerson?.id, 
+        name: updatedPerson?.name, 
+        status: updatedPerson?.status, 
+        verified: updatedPerson?.verified 
+      });
+      
+      res.json({ success: true, person: updatedPerson, message: "Person removed from rejected status successfully" });
+    } catch (error: any) {
+      console.error('Remove from rejected failed:', error);
+      res.status(500).json({ message: "Error removing person from rejected status: " + error.message });
+    }
+  });
+
+  // Reject needy person (admin only)
+  app.post("/api/needy/:id/reject", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log(`🔄 Rejecting person with ID: ${id}`);
+      
+      const needyPerson = await storage.getNeedyPerson(id);
+      if (!needyPerson) {
+        console.log(`❌ Person not found with ID: ${id}`);
+        return res.status(404).json({ message: "Needy person not found" });
+      }
+
+      console.log(`👤 Found person: ${needyPerson.name}`);
+      
+      const updatedPerson = await storage.updateNeedyPersonStatus(id, "rejected", false);
+      console.log(`✅ Status updated in database`);
+      
+      // Send SMS notification to reporter about rejection (don't fail if SMS fails)
+      try {
+        if (needyPerson.reporterPhone) {
+          const smsMessage = `We regret to inform that ${needyPerson.name}'s registration could not be verified at this time. Please contact HAID for more information. - Team HAID`;
+          await sendSMS(needyPerson.reporterPhone, smsMessage);
+          console.log(`📱 SMS sent successfully to ${needyPerson.reporterPhone}`);
+        } else {
+          console.log(`⚠️ No reporter phone number found, skipping SMS`);
+        }
+      } catch (smsError) {
+        console.error('SMS sending failed (but rejection succeeded):', smsError);
+        // Don't fail the entire operation if SMS fails
+      }
+      
+      res.json({ success: true, person: updatedPerson, message: "Person rejected successfully" });
+    } catch (error: any) {
+      console.error('Rejection failed:', error);
+      res.status(500).json({ message: "Error rejecting person: " + error.message });
     }
   });
 

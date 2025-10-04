@@ -7,6 +7,11 @@ import { useState, useEffect } from "react";
 export default function HomePage() {
   const { data: analytics, isLoading, refetch: refetchAnalytics } = useQuery({
     queryKey: ['/api/analytics'],
+    queryFn: async () => {
+      const response = await fetch('/api/analytics');
+      if (!response.ok) throw new Error('Failed to fetch analytics');
+      return response.json();
+    },
     refetchInterval: 2000, // Real-time updates every 2 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -15,6 +20,11 @@ export default function HomePage() {
 
   const { data: donationsData, refetch: refetchDonations } = useQuery({
     queryKey: ['/api/donations'],
+    queryFn: async () => {
+      const response = await fetch('/api/donations');
+      if (!response.ok) throw new Error('Failed to fetch donations');
+      return response.json();
+    },
     refetchInterval: 2000, // Real-time updates every 2 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -23,6 +33,11 @@ export default function HomePage() {
 
   const { data: needyData, refetch: refetchNeedy } = useQuery({
     queryKey: ['/api/needy'],
+    queryFn: async () => {
+      const response = await fetch('/api/needy');
+      if (!response.ok) throw new Error('Failed to fetch needy data');
+      return response.json();
+    },
     refetchInterval: 2000, // Real-time updates every 2 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -251,7 +266,7 @@ export default function HomePage() {
                 onClick={() => handleCardClick('people')}
               >
                 <div className="text-6xl lg:text-7xl font-bold text-green-600 dark:text-green-400 mb-4 group-hover:scale-110 transition-transform duration-300">
-                  {isLoading ? "..." : ((analytics as any)?.peopleHelped || ((needyData as any)?.filter((p: any) => p.verified).length) || 0).toLocaleString()}
+                  {isLoading ? "..." : ((analytics as any)?.peopleHelped || 0).toLocaleString()}
                 </div>
                 <div className="text-xl font-bold text-gray-900 dark:text-white mb-2">People Helped</div>
                 <div className="text-gray-600 dark:text-gray-300">Lives positively impacted</div>
@@ -717,21 +732,27 @@ export default function HomePage() {
                     <p className="text-gray-500 dark:text-gray-400 text-sm">Real data from needy persons registry in your database</p>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 mb-8">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-xl text-center">
-                      <h5 className="text-green-600 font-medium mb-2 text-sm">Verified & Helped</h5>
+                      <h5 className="text-green-600 font-medium mb-2 text-sm">Verified</h5>
                       <div className="text-4xl font-bold text-black dark:text-white">
-                        {needyData && Array.isArray(needyData) ? needyData.filter((p: any) => p.verified && p.status === 'completed').length : 0}
+                        {needyData && Array.isArray(needyData) ? needyData.filter((p: any) => p.verified).length : 0}
+                      </div>
+                    </div>
+                    <div className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-xl text-center">
+                      <h5 className="text-emerald-600 font-medium mb-2 text-sm">Helped</h5>
+                      <div className="text-4xl font-bold text-black dark:text-white">
+                        {needyData && Array.isArray(needyData) ? needyData.filter((p: any) => p.status === 'helped').length : 0}
                       </div>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 p-6 rounded-xl text-center">
-                      <h5 className="text-yellow-600 font-medium mb-2 text-sm">Pending Verification</h5>
+                      <h5 className="text-yellow-600 font-medium mb-2 text-sm">Pending</h5>
                       <div className="text-4xl font-bold text-black dark:text-white">
                         {needyData && Array.isArray(needyData) ? needyData.filter((p: any) => !p.verified || p.status === 'pending').length : 0}
                       </div>
                     </div>
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl text-center">
-                      <h5 className="text-blue-600 font-medium mb-2 text-sm">Total Registered</h5>
+                      <h5 className="text-blue-600 font-medium mb-2 text-sm">Total</h5>
                       <div className="text-4xl font-bold text-black dark:text-white">
                         {needyData && Array.isArray(needyData) ? needyData.length : 0}
                       </div>

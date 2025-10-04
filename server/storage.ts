@@ -214,8 +214,8 @@ export class MemStorage implements IStorage {
       .filter(d => d.status === "completed")
       .reduce((sum, d) => sum + parseFloat(d.amount), 0);
     const totalItemDonations = itemDonations.length;
-    const peopleHelped = needyPersons.filter(p => p.verified).length;
-    const activeCases = needyPersons.filter(p => p.status === "pending").length;
+    const peopleHelped = needyPersons.filter(p => p.status === 'helped').length;
+    const activeCases = needyPersons.filter(p => !p.verified).length;
 
     // Monthly trend - calculated from real data (last 6 months)
     const monthlyTrend = [];

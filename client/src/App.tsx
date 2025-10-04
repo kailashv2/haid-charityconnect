@@ -11,6 +11,8 @@ import DonateItemsPage from "@/pages/donate-items";
 import DonateMoneyPage from "@/pages/donate-money";
 import RegisterNeedyPage from "@/pages/register-needy";
 import AnalyticsPage from "@/pages/analytics";
+import AdminLoginPage from "@/pages/admin-login";
+import AdminDashboardPage from "@/pages/admin-dashboard-simple";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +23,8 @@ function Router() {
       <Route path="/donate-money" component={DonateMoneyPage} />
       <Route path="/register-needy" component={RegisterNeedyPage} />
       <Route path="/analytics" component={AnalyticsPage} />
+      <Route path="/admin/login" component={AdminLoginPage} />
+      <Route path="/admin/dashboard" component={AdminDashboardPage} />
       <Route component={NotFound} />
     </Switch>
   );

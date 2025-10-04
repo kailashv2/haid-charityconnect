@@ -1,12 +1,35 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Heart, BarChart3, Users, Gift, HandHeart, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { Heart, BarChart3, Users, Gift, HandHeart, Menu, X, Shield, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export function Navigation() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+
+  // Check admin login status
+  useEffect(() => {
+    const checkAdminStatus = () => {
+      const adminStatus = localStorage.getItem("isAdminLoggedIn");
+      setIsAdminLoggedIn(!!adminStatus);
+    };
+    
+    checkAdminStatus();
+    // Listen for storage changes (when admin logs in/out)
+    window.addEventListener('storage', checkAdminStatus);
+    
+    return () => window.removeEventListener('storage', checkAdminStatus);
+  }, []);
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem("isAdminLoggedIn");
+    localStorage.removeItem("adminUsername");
+    setIsAdminLoggedIn(false);
+    // Trigger storage event for other components
+    window.dispatchEvent(new Event('storage'));
+  };
 
   const navItems = [
     { href: "/", icon: Heart, label: "Home" },
@@ -14,6 +37,7 @@ export function Navigation() {
     { href: "/donate-money", icon: HandHeart, label: "Donate Money" },
     { href: "/register-needy", icon: Users, label: "Register Needy" },
     { href: "/analytics", icon: BarChart3, label: "Analytics" },
+    { href: "/admin/login", icon: Shield, label: "Admin" },
   ];
 
   const isActive = (href: string) => {
@@ -108,6 +132,47 @@ export function Navigation() {
                 Analytics
               </Button>
             </Link>
+
+            {/* Admin Section */}
+            {isAdminLoggedIn ? (
+              <div className="flex items-center gap-2">
+                <Link href="/admin/dashboard">
+                  <Button 
+                    size="sm"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      isActive("/admin/dashboard") 
+                        ? 'bg-green-600 text-white shadow-md' 
+                        : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-800'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button 
+                  size="sm"
+                  onClick={handleAdminLogout}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Link href="/admin/login">
+                <Button 
+                  size="sm"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    isActive("/admin") 
+                      ? 'bg-red-600 text-white shadow-md' 
+                      : 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800'
+                  }`}
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin
+                </Button>
+              </Link>
+            )}
 
             {/* Theme Toggle */}
             <div className="ml-4">
