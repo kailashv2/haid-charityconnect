@@ -111,11 +111,14 @@ export default function AdminDashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem("isAdminLoggedIn");
     localStorage.removeItem("adminUsername");
+    // Trigger storage event for navigation update
+    window.dispatchEvent(new Event('storage'));
     toast({
       title: "Logged Out",
       description: "You have been logged out successfully.",
     });
-    setLocation("/");
+    // Force redirect to home page
+    window.location.href = "/";
   };
 
   const handleVerify = (id: string) => {

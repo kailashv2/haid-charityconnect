@@ -102,7 +102,10 @@ export default function AdminDashboardSimple() {
   const handleLogout = () => {
     localStorage.removeItem("isAdminLoggedIn");
     localStorage.removeItem("adminUsername");
-    setLocation("/");
+    // Trigger storage event for navigation update
+    window.dispatchEvent(new Event('storage'));
+    // Force redirect to home page
+    window.location.href = "/";
   };
 
   const handleVerify = (id: string) => {

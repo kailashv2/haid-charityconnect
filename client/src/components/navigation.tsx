@@ -29,6 +29,8 @@ export function Navigation() {
     setIsAdminLoggedIn(false);
     // Trigger storage event for other components
     window.dispatchEvent(new Event('storage'));
+    // Force redirect to home page
+    window.location.href = "/";
   };
 
   const navItems = [
